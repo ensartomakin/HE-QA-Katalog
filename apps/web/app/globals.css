@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+/*
+ * Tasarım token'ları — docs/SISTEM-TASARIMI.md §0'da netleşen karara göre
+ * DESIGN (3).md (Spécialiste Belge/Misuko referansı) hex değerleri BİREBİR kullanılıyor.
+ * beausite lisanslı bir font olduğundan yerel bir kopyası yoksa aşağıdaki sistem
+ * fontu substitüsyonu (Söhne/Inter benzeri metrikler) devrededir.
+ */
+@theme {
+  --color-bone-white: #fcf9ee;
+  --color-linen: #f2efe3;
+  --color-pebble: #bcbab2;
+  --color-bark: #6a6965;
+  --color-ink-black: #000000;
+
+  --font-beausite: 'beausite', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-body-sm: 14px;
+  --text-body: 21px;
+  --text-subheading: 30px;
+  --text-heading-sm: 34px;
+  --text-heading: 48px;
+
+  --spacing-5: 5px;
+  --spacing-9: 9px;
+  --spacing-11: 11px;
+  --spacing-15: 15px;
+  --spacing-17: 17px;
+  --spacing-18: 18px;
+  --spacing-20: 20px;
+  --spacing-21: 21px;
+  --spacing-25: 25px;
+  --spacing-26: 26px;
+  --spacing-27: 27px;
+  --spacing-34: 34px;
+  --spacing-36: 36px;
+  --spacing-40: 40px;
+  --spacing-58: 58px;
+  --spacing-61: 61px;
+
+  --radius-tags: 20px;
+  --radius-cards: 0px;
+  --radius-inputs: 0px;
+}
+
+body {
+  background-color: var(--color-bone-white);
+  color: var(--color-ink-black);
+  font-family: var(--font-beausite);
+  letter-spacing: -0.022em;
+  line-height: 1.36;
+}
+
+/* Ghost outline buton — DESIGN.md "Ghost Outline Button" bileşeni */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid var(--color-ink-black);
+  padding: 9px 20px;
+  font-family: var(--font-beausite);
+  font-size: var(--text-body-sm);
+  font-weight: 400;
+  color: var(--color-ink-black);
+  border-radius: 0;
+}
+
+.btn-ghost:hover {
+  background: var(--color-linen);
+}

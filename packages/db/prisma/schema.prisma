@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                 String    @id @default(cuid())
+  tsoftProductId     String    @unique
+  name               String
+  code               String    @unique
+  categoryId         String
+  category           Category  @relation(fields: [categoryId], references: [id])
+  description        String?
+  fabricInfo         String?
+  sourcePriceTry     Decimal   @db.Decimal(12, 2)
+  stockStatus        StockStatus @default(UNKNOWN)
+  manualSortWeight   Int?
+  salesScore         Decimal?  @db.Decimal(10, 2)
+  isActive           Boolean   @default(true)
+  sourceMissingSince DateTime?
+  missingSyncCount   Int       @default(0)
+  archivedAt         DateTime?
+  lastSyncedAt       DateTime?
+  rawSourcePayload   Json?
+
+  images       ProductImage[]
+  colors       ProductColor[]
+  sizes        ProductSize[]
+  catalogItems CatalogItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([archivedAt])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  sourceUrl String
+  isPrimary Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+model ProductColor {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name       String
+  hexPreview String?
+  sortOrder  Int     @default(0)
+
+  @@index([productId])
+}
+
+model ProductSize {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label     String
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String     @unique
+  slug     String     @unique
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+}
+
+model ExchangeRate {
+  id          String     @id @default(cuid())
+  currency    Currency
+  ratePerTry  Decimal    @db.Decimal(12, 6)
+  source      RateSource @default(MANUAL)
+  effectiveAt DateTime   @default(now())
+
+  @@index([currency, effectiveAt])
+}
+
+model Settings {
+  id                   String   @id @default("singleton")
+  wholesaleDiscountPct Decimal  @default(40.00) @db.Decimal(5, 2)
+  defaultCurrency      Currency @default(TRY)
+  brandLogoUrl         String?
+  companyFooterInfo    Json?
+}
+
+model Catalog {
+  id            String        @id @default(cuid())
+  name          String
+  currency      Currency
+  coverTitle    String?
+  coverSubtitle String?
+  language      Language      @default(TR)
+  status        CatalogStatus @default(DRAFT)
+  pdfUrl        String?
+  generatedAt   DateTime?
+  createdBy     String
+  createdAt     DateTime      @default(now())
+
+  items CatalogItem[]
+}
+
+model CatalogItem {
+  id        String  @id @default(cuid())
+  catalogId String
+  catalog   Catalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  sortOrder Int
+
+  @@index([catalogId])
+  @@unique([catalogId, productId])
+}
+
+model SyncRun {
+  id               String     @id @default(cuid())
+  startedAt        DateTime   @default(now())
+  finishedAt       DateTime?
+  status           SyncStatus
+  method           SyncMethod
+  productsUpserted Int        @default(0)
+  productsMissing  Int        @default(0)
+  errorMessage     String?
+  logDetail        Json?
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model TsoftCredential {
+  id          String   @id @default("singleton")
+  apiUrl      String
+  storeCode   String
+  apiUser     String
+  apiPassEnc  String
+  apiTokenEnc String?
+  updatedAt   DateTime @updatedAt
+}
+
+enum Currency {
+  TRY
+  USD
+  EUR
+}
+
+enum Language {
+  TR
+  AR
+  EN
+}
+
+enum StockStatus {
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+  UNKNOWN
+}
+
+enum RateSource {
+  MANUAL
+  AUTO_API
+}
+
+enum CatalogStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+}
+
+enum SyncStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum SyncMethod {
+  API
+  MANUAL_IMPORT
+}
