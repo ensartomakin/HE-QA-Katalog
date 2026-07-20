@@ -37,3 +37,40 @@ export interface Product {
   colors: ProductColor[];
   sizes: ProductSize[];
 }
+
+export type CatalogCurrency = 'TRY' | 'USD' | 'EUR';
+export type CatalogStatus = 'DRAFT' | 'GENERATING' | 'READY' | 'FAILED';
+
+export interface CatalogItem {
+  id: string;
+  productId: string;
+  sortOrder: number;
+  product: Product;
+  priceTry: number;
+  priceDisplay: number;
+}
+
+export interface CatalogDetail {
+  id: string;
+  name: string;
+  currency: CatalogCurrency;
+  coverTitle: string | null;
+  coverSubtitle: string | null;
+  status: CatalogStatus;
+  pdfUrl: string | null;
+  generatedAt: string | null;
+  createdAt: string;
+  discountPct: number;
+  items: CatalogItem[];
+}
+
+export interface CatalogSummary {
+  id: string;
+  name: string;
+  currency: CatalogCurrency;
+  status: CatalogStatus;
+  pdfUrl: string | null;
+  generatedAt: string | null;
+  createdAt: string;
+  _count: { items: number };
+}

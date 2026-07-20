@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TopNav } from '@/components/TopNav';
 import { ProductCard } from '@/components/ProductCard';
@@ -78,7 +79,14 @@ export default function ProductsPage() {
       <div className="px-[17px] flex flex-col gap-[25px]">
         <div className="flex items-center justify-between">
           <h1 className="text-[34px] leading-[1.08]">Ürün Seçim Paneli</h1>
-          <span className="text-[14px] text-[var(--color-bark)]">{selection.selectedIds.size} ürün seçildi</span>
+          <div className="flex items-center gap-[17px]">
+            <span className="text-[14px] text-[var(--color-bark)]">{selection.selectedIds.size} ürün seçildi</span>
+            {selection.selectedIds.size > 0 && (
+              <Link href="/catalogs/new" className="btn-ghost">
+                → Katalog Oluştur
+              </Link>
+            )}
+          </div>
         </div>
 
         <input

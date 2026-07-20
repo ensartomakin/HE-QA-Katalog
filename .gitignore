@@ -12,3 +12,4 @@ apps/worker/logs/*.log
 *.log
 .DS_Store
 .claude/scheduled_tasks.lock
+apps/worker/generated-pdfs/

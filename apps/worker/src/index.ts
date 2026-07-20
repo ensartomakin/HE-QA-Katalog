@@ -7,6 +7,7 @@ import { settingsRouter } from './api/settings.routes';
 import { syncRouter } from './api/sync.routes';
 import { productsRouter } from './api/products.routes';
 import { authRouter } from './api/auth.routes';
+import { catalogsRouter } from './api/catalogs.routes';
 
 if (!process.env.ENCRYPTION_KEY) {
   throw new Error('ENCRYPTION_KEY tanımlı değil — tsoft kimlik bilgileri şifrelenemez, servis başlatılamıyor.');
@@ -28,6 +29,7 @@ app.use('/api/auth', requireInternalAuth, authRouter);
 app.use('/api/settings', requireInternalAuth, settingsRouter);
 app.use('/api/sync', requireInternalAuth, syncRouter);
 app.use('/api/products', requireInternalAuth, productsRouter);
+app.use('/api/catalogs', requireInternalAuth, catalogsRouter);
 
 const port = Number(process.env.PORT ?? 3001);
 app.listen(port, () => {
