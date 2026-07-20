@@ -40,19 +40,124 @@ function colorNameToHex(name: string): string | undefined {
   return COLOR_HEX_MAP[key];
 }
 
+/**
+ * Kategori ağacını senkronize eder — HAFİF işlemdir (yalnızca 229 kategori, ürün
+ * çekilmez), Ürün Seçim Paneli'ndeki kategori ağacı seçicisini doldurmak için kullanılır.
+ * tsoftCategoryId -> internal Category.id eşlemesini döndürür.
+ */
+export async function syncCategories(): Promise<Map<string, string>> {
+  const client = await getTsoftClient();
+  const categories = await client.getCategories();
+  const categoryIdMap = new Map<string, string>();
+
+  for (const cat of categories) {
+    // Slug'a tsoftCategoryId eklenir — T-Soft'ta aynı/benzer isimli farklı kategoriler
+    // olabiliyor (bazılarında baştaki/sondaki boşluklar bile farklılaşıyor), tekilliği
+    // isim yerine tsoftCategoryId garanti eder.
+    const category = await prisma.category.upsert({
+      where: { tsoftCategoryId: cat.categoryId },
+      create: { tsoftCategoryId: cat.categoryId, name: cat.name, slug: `${slugify(cat.name)}-${cat.categoryId}` },
+      update: { name: cat.name },
+    });
+    categoryIdMap.set(cat.categoryId, category.id);
+  }
+
+  // İkinci geçiş: kategori ağacını (parentId) kur — ilk geçişte tüm kategoriler henüz
+  // oluşmadan ebeveyn referansı kurulamıyordu.
+  for (const cat of categories) {
+    if (!cat.parentCategoryId || cat.parentCategoryId === '0') continue;
+    const internalId = categoryIdMap.get(cat.categoryId);
+    const parentInternalId = categoryIdMap.get(cat.parentCategoryId);
+    if (!internalId || !parentInternalId || internalId === parentInternalId) continue;
+    await prisma.category.update({ where: { id: internalId }, data: { parentId: parentInternalId } });
+  }
+
+  logger.info(`[syncCategories] ${categories.length} kategori senkronize edildi`);
+  return categoryIdMap;
+}
+
+async function upsertProduct(p: TSoftProduct, internalCategoryId: string): Promise<string | null> {
+  if (!p.productId || !p.productCode) return null;
+
+  const listPrice = Math.max(...p.variants.map((v) => v.price), 0);
+
+  const product = await prisma.product.upsert({
+    where: { tsoftProductId: p.productId },
+    create: {
+      tsoftProductId: p.productId,
+      name: p.productName,
+      code: p.productCode,
+      categoryId: internalCategoryId,
+      description: p.description ?? null,
+      fabricInfo: p.fabricInfo ?? null,
+      colorLabel: p.colorLabel ?? null,
+      tsoftRelatedIds: p.relatedProductIds ?? [],
+      sourcePriceTry: listPrice,
+      stockStatus: stockStatusFromVariants(p),
+      lastSyncedAt: new Date(),
+      sourceMissingSince: null,
+      missingSyncCount: 0,
+      rawSourcePayload: p as unknown as object,
+    },
+    update: {
+      name: p.productName,
+      categoryId: internalCategoryId,
+      description: p.description ?? undefined,
+      fabricInfo: p.fabricInfo ?? undefined,
+      colorLabel: p.colorLabel ?? undefined,
+      tsoftRelatedIds: p.relatedProductIds ?? undefined,
+      sourcePriceTry: listPrice,
+      stockStatus: stockStatusFromVariants(p),
+      lastSyncedAt: new Date(),
+      sourceMissingSince: null,
+      missingSyncCount: 0,
+      archivedAt: null, // tekrar görüldü — arşivden çıkar
+      rawSourcePayload: p as unknown as object,
+    },
+  });
+
+  // Bedenler: Faz 0 keşfi HE-QA'nın tsoft API kullanıcısının beden/alt varyant
+  // modüllerine erişim izni OLMADIĞINI ortaya çıkardı (product/get hiçbir parametre
+  // kombinasyonuyla beden kırılımı döndürmüyor; product/getSubProducts, getVariants,
+  // getDetail, getStock uçları "erişim yetkiniz yok" hatası veriyor — bkz.
+  // types/tsoft.ts). Bu yüzden burada UYDURMA bir "Tek Beden" kaydı YAZILMIYOR —
+  // tsoft panelinden API kullanıcısına ilgili modül izni verilene kadar bedenler
+  // Ürün Detay ekranından manuel girilecek (açık soru, kullanıcıya iletildi).
+
+  if (p.imageUrl) {
+    await prisma.productImage.upsert({
+      where: { id: `${product.id}-primary` },
+      create: { id: `${product.id}-primary`, productId: product.id, url: p.imageUrl, sourceUrl: p.imageUrl, isPrimary: true, sortOrder: 0 },
+      update: { url: p.imageUrl, sourceUrl: p.imageUrl },
+    });
+  }
+
+  return product.tsoftProductId;
+}
+
 /** Faz 0 bulgusu: tsoft'ta renk seçenekleri ayrı ürünler halinde gelir (RelatedProductsIds1
- *  ile birbirine bağlı). Senkron sonrası bu ilişkiyi kullanarak her ürünün "renk seçenekleri"
+ *  ile birbirine bağlı). Verilen ürünler için bu ilişkiyi kullanarak "renk seçenekleri"
  *  swatch listesini (kardeşlerinin colorLabel'larından) yeniden inşa eder. */
-async function syncColorSwatches(): Promise<void> {
+async function syncColorSwatches(tsoftProductIds: string[]): Promise<void> {
+  if (tsoftProductIds.length === 0) return;
+
+  const relatedIds = new Set<string>(tsoftProductIds);
+  const seedProducts = await prisma.product.findMany({
+    where: { tsoftProductId: { in: tsoftProductIds } },
+    select: { tsoftRelatedIds: true },
+  });
+  for (const p of seedProducts) for (const id of p.tsoftRelatedIds) relatedIds.add(id);
+
   const products = await prisma.product.findMany({
-    where: { archivedAt: null, tsoftRelatedIds: { isEmpty: false } },
+    where: { tsoftProductId: { in: Array.from(relatedIds) } },
     select: { id: true, tsoftProductId: true, colorLabel: true, tsoftRelatedIds: true },
   });
-  if (products.length === 0) return;
-
   const byTsoftId = new Map(products.map((p) => [p.tsoftProductId, p]));
 
-  for (const product of products) {
+  for (const tsoftId of tsoftProductIds) {
+    const product = byTsoftId.get(tsoftId);
+    if (!product) continue;
+
     const siblings = product.tsoftRelatedIds
       .filter((id) => id !== product.tsoftProductId)
       .map((id) => byTsoftId.get(id))
@@ -61,7 +166,6 @@ async function syncColorSwatches(): Promise<void> {
     await prisma.productColor.deleteMany({ where: { productId: product.id } });
     if (siblings.length === 0) continue;
 
-    // Kendi rengi de listede ilk sırada gösterilir
     const ownColor = product.colorLabel ? [{ name: product.colorLabel, hexPreview: colorNameToHex(product.colorLabel) }] : [];
     const siblingColors = siblings.map((s) => ({ name: s.colorLabel!, hexPreview: colorNameToHex(s.colorLabel!) }));
     const all = [...ownColor, ...siblingColors].filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
@@ -73,8 +177,38 @@ async function syncColorSwatches(): Promise<void> {
 }
 
 /**
- * Manuel tetiklemeli tam senkron — HE-QA için otomatik/zamanlanmış senkron MVP kapsamında
- * yok (netleşti), bu fonksiyon yalnızca "Şimdi Senkronize Et" isteğiyle çağrılır.
+ * Tek bir kategorinin ürünlerini tsoft'tan anlık çeker ve önbelleğe (Postgres) yazar.
+ * Ürün Seçim Paneli'nde bir kategori seçildiğinde çağrılır — "hangi kategoriyi seçtiysem
+ * o kategoriye ait ürünleri getir, tüm kataloğu çekip sistemi şişirme" isteğine karşılık
+ * gelir (bkz. konuşma). Kategori tsoftCategoryId üzerinden çözülür.
+ */
+export async function syncCategoryProducts(tsoftCategoryId: string): Promise<{ upserted: number }> {
+  const category = await prisma.category.findUnique({ where: { tsoftCategoryId } });
+  if (!category) {
+    throw new Error(`Kategori bulunamadı: ${tsoftCategoryId}. Önce kategori ağacını senkronize edin.`);
+  }
+
+  const client = await getTsoftClient();
+  const products = await client.getCategoryProductsFull(tsoftCategoryId);
+
+  const upsertedIds: string[] = [];
+  for (const p of products) {
+    const id = await upsertProduct(p, category.id);
+    if (id) upsertedIds.push(id);
+  }
+
+  await syncColorSwatches(upsertedIds);
+
+  logger.info(`[syncCategoryProducts] kategori=${tsoftCategoryId} (${category.name}) upserted=${upsertedIds.length}`);
+  return { upserted: upsertedIds.length };
+}
+
+/**
+ * Tam senkron (tüm kategoriler + tüm ürünler) — manuel tetiklemeli, büyük katalog
+ * boyutu nedeniyle uzun sürebilir. Ürün Seçim Paneli artık varsayılan olarak bunu
+ * kullanmıyor (kategoriye göre anlık yükleme yapıyor, bkz. syncCategoryProducts),
+ * bu fonksiyon "kaynakta silinen ürün" tespiti ve satış performansı gibi kataloğun
+ * TAMAMINI gerektiren işlemler için Ayarlar/Senkronizasyon ekranından ayrıca tetiklenir.
  */
 export async function runFullSync(): Promise<{ syncRunId: string; upserted: number; missing: number }> {
   const syncRun = await prisma.syncRun.create({
@@ -83,94 +217,26 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
 
   try {
     const client = await getTsoftClient();
-
-    const categories = await client.getCategories();
-    const categoryIdMap = new Map<string, string>(); // tsoftCategoryId -> internal Category.id
-
-    for (const cat of categories) {
-      const category = await prisma.category.upsert({
-        where: { slug: slugify(cat.name) },
-        create: { name: cat.name, slug: slugify(cat.name) },
-        update: { name: cat.name },
-      });
-      categoryIdMap.set(cat.categoryId, category.id);
-    }
+    const categoryIdMap = await syncCategories();
+    const categories = Array.from(categoryIdMap.keys());
 
     const seenTsoftIds = new Set<string>();
     let upserted = 0;
 
-    for (const cat of categories) {
-      const products = await client.getCategoryProductsFull(cat.categoryId);
-      const internalCategoryId = categoryIdMap.get(cat.categoryId);
+    for (const tsoftCategoryId of categories) {
+      const products = await client.getCategoryProductsFull(tsoftCategoryId);
+      const internalCategoryId = categoryIdMap.get(tsoftCategoryId);
       if (!internalCategoryId) continue;
 
       for (const p of products) {
-        if (!p.productId || !p.productCode) continue;
-        seenTsoftIds.add(p.productId);
-
-        const listPrice = Math.max(...p.variants.map((v) => v.price), 0);
-
-        const product = await prisma.product.upsert({
-          where: { tsoftProductId: p.productId },
-          create: {
-            tsoftProductId: p.productId,
-            name: p.productName,
-            code: p.productCode,
-            categoryId: internalCategoryId,
-            description: p.description ?? null,
-            fabricInfo: p.fabricInfo ?? null,
-            colorLabel: p.colorLabel ?? null,
-            tsoftRelatedIds: p.relatedProductIds ?? [],
-            sourcePriceTry: listPrice,
-            stockStatus: stockStatusFromVariants(p),
-            lastSyncedAt: new Date(),
-            sourceMissingSince: null,
-            missingSyncCount: 0,
-            rawSourcePayload: p as unknown as object,
-          },
-          update: {
-            name: p.productName,
-            categoryId: internalCategoryId,
-            description: p.description ?? undefined,
-            fabricInfo: p.fabricInfo ?? undefined,
-            colorLabel: p.colorLabel ?? undefined,
-            tsoftRelatedIds: p.relatedProductIds ?? undefined,
-            sourcePriceTry: listPrice,
-            stockStatus: stockStatusFromVariants(p),
-            lastSyncedAt: new Date(),
-            sourceMissingSince: null,
-            missingSyncCount: 0,
-            archivedAt: null, // tekrar görüldü — arşivden çıkar
-            rawSourcePayload: p as unknown as object,
-          },
-        });
-
-        // Bedenler: Faz 0 keşfi HE-QA'nın tsoft API kullanıcısının beden/alt varyant
-        // modüllerine erişim izni OLMADIĞINI ortaya çıkardı (product/get hiçbir parametre
-        // kombinasyonuyla beden kırılımı döndürmüyor; product/getSubProducts, getVariants,
-        // getDetail, getStock uçları "erişim yetkiniz yok" hatası veriyor — bkz.
-        // types/tsoft.ts). Bu yüzden burada UYDURMA bir "Tek Beden" kaydı YAZILMIYOR —
-        // tsoft panelinden API kullanıcısına ilgili modül izni verilene kadar bedenler
-        // Ürün Detay ekranından manuel girilecek (açık soru, kullanıcıya iletildi).
-
-        // Ana görsel
-        if (p.imageUrl) {
-          await prisma.productImage.upsert({
-            where: { id: `${product.id}-primary` },
-            create: { id: `${product.id}-primary`, productId: product.id, url: p.imageUrl, sourceUrl: p.imageUrl, isPrimary: true, sortOrder: 0 },
-            update: { url: p.imageUrl, sourceUrl: p.imageUrl },
-          });
-        }
-
+        const id = await upsertProduct(p, internalCategoryId);
+        if (!id) continue;
+        seenTsoftIds.add(id);
         upserted++;
       }
     }
 
-    // Renk seçenekleri — tsoft'ta her renk ayrı bir ürün olduğundan (bkz. types/tsoft.ts),
-    // "renk seçenekleri" listesi bu ürünün RelatedProductsIds1 ile işaret ettiği kardeş
-    // ürünlerin colorLabel'larından ikinci bir geçişte inşa edilir (hepsi upsert edildikten
-    // sonra, aksi halde henüz DB'de olmayan kardeşler kaçırılır).
-    await syncColorSwatches();
+    await syncColorSwatches(Array.from(seenTsoftIds));
 
     // Kaynakta artık görünmeyen ürünler — hard delete YOK, kademeli arşivleme (bkz. docs §6)
     const missingProducts = await prisma.product.findMany({

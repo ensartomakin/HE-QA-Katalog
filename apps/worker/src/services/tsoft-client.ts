@@ -281,7 +281,13 @@ export class TSoftClient implements TSoftClientApi {
           }))
         : [{ variantId: String(p.ProductId ?? ''), sizeName: 'Tek Beden', barcode: String(p.Barcode ?? ''), stock, price: Number(p.SellingPrice ?? 0) }];
 
-    const rawImageUrl = String(p.MainImageUrl ?? p.mainImageUrl ?? p.ImageUrl ?? p.imageUrl ?? p.Image ?? p.image ?? p.Photo ?? p.photo ?? '');
+    // Faz 0 keşfi: T-Soft "ImageUrl" alanı sadece dosya adı döndürüyor (tam URL değil).
+    // Gerçek erişilebilir adres mağaza domaininin köküne dosya adının eklenmesiyle oluşuyor
+    // (örn. "48931-32-K.jpg" → "https://www.he-qa.com/48931-32-K.jpg" — doğrulandı).
+    const rawImageFilename = String(p.MainImageUrl ?? p.mainImageUrl ?? p.ImageUrl ?? p.imageUrl ?? p.Image ?? p.image ?? p.Photo ?? p.photo ?? '');
+    const rawImageUrl = rawImageFilename && !rawImageFilename.startsWith('http')
+      ? `${this.creds.apiUrl}/${rawImageFilename}`
+      : rawImageFilename;
 
     const listPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
     const discountedPrice = Number(p.DiscountedPrice ?? p.discountedPrice ?? 0);

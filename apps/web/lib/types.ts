@@ -1,5 +1,6 @@
 export interface Category {
   id: string;
+  tsoftCategoryId: string;
   name: string;
   slug: string;
   parentId: string | null;
