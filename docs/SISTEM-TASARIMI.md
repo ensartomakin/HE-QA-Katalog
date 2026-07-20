@@ -54,7 +54,19 @@ Brief'in kendi kuralına göre ("ikisi arasında çelişki olursa ekteki referan
 - **Kategoriler:** `POST /rest1/category/getCategories`.
 - **Satış performansı verisi:** Bu hesapta `report/getSalesReport` uç noktası kapalı (`"Controller is not allowed!"`) — Rankify bunun yerine `order/get` (FetchProductData=true, tarih aralığı) ile siparişleri çekip ürün bazında adet/ciro topluyor (`getSalesViaOrders`). **Aynı yöntem HE-QA'nın "Satış Performansı" alanı için doğrudan kullanılabilir** — bu açık soruyu da çözüyor.
 - **Kimlik bilgisi güvenliği:** Rankify'de tsoft kullanıcı adı/şifresi **AES-256-GCM ile şifrelenmiş halde Postgres'te** (`tsoft_credentials` tablosu) tutuluyor, sadece sunucu tarafında `getCredentials()` ile çözülüyor — istemciye hiçbir zaman gönderilmiyor. HE-QA için **bu şemanın ve `crypto.ts` modülünün birebir kopyalanması** öneriliyor (bkz. Guardrail §6).
-- **Eksik/uyarlanması gereken alan:** Rankify'nin `mapProduct()` fonksiyonu sıralama amaçlı kurulduğundan yalnızca kod/isim/kategori/varyant(beden)/fiyat/indirim/sıra bilgisini map'liyor — **kumaş bilgisi, renk seçenekleri, uzun açıklama ve çoklu ürün görseli map'lenmiyor**. `product/get`'in ham yanıtında bu alanların T-Soft tarafında hangi anahtarlarla geldiğini görmek için client'ta zaten hazır duran `getCategoryProductsRawSample(categoryId, limit)` fonksiyonu **Faz 0'da HE-QA hesabına karşı çalıştırılıp** (birkaç örnek ürünün ham JSON'u incelenerek) `mapProduct` HE-QA ihtiyaçlarına göre genişletilecek.
+### Faz 0 Ham Veri Keşfi — Tamamlandı (2026-07-18, gerçek HE-QA hesabına karşı)
+
+`getCategoryProductsRawSample()` ile HE-QA'nın gerçek tsoft hesabına (229 kategori, canlı ürün verisi) karşı çalıştırıldı. Örnek ham yanıt [`docs/kesif-tsoft-ornek-veri.json`](kesif-tsoft-ornek-veri.json)'de referans olarak saklanıyor. Bulgular:
+
+| İhtiyaç | Sonuç |
+|---|---|
+| **Açıklama** | `Details` alanı — zengin HTML (kalıp tablosu, manken ölçüleri, bakım önerisi dahil). `ShortDescription` her zaman boş geliyor. |
+| **Kumaş bilgisi** | Ayrı bir alan **yok** — `Details` HTML'inin içine serbest metin olarak gömülü (örn. "%100 Pamuk müslin kumaş"). En iyi çaba regex'iyle çıkarılıyor (`extractFabricInfo()`), bulunamazsa admin manuel girer. |
+| **Renk seçenekleri** | Ayrı bir liste **yok** — **her renk kendi `ProductCode`'una sahip ayrı bir tsoft ürünüdür** (örn. `T7806` "...Gri" / `T7807` "...Mavi"). Renk adı `Additional2`/`Additional5` alanında; kardeş renk varyantları `RelatedProductsIds1`'de (virgüllü id listesi) geliyor. Senkron sonrası bu ilişkiden swatch listesi yeniden inşa ediliyor (`syncColorSwatches()`). |
+| **Beden (varyant) kırılımı** | ⚠️ **Bu API kullanıcısıyla erişilemiyor.** `product/get` hiçbir parametre kombinasyonuyla (`FetchDetails`, `StockFields`, `SubProducts=true`, `ProductCode` filtresi) alt varyant dizisi döndürmüyor; `product/getDetail`, `getSubProducts`, `getVariants`, `getStock` uçları `"Bu modüle erişim yetkiniz bulunmamaktadır!"` hatası veriyor. `Stock` alanı tüm bedenlerin toplamı (kırılım yok). **Yeni açık soru — bkz. §7.** |
+| **Görsel galerisi** | `ImageUrl` tek bir dosya adı döndürüyor (`ImageUrlCdn` boş geliyor); çoklu galeri görseli için CDN URL şablonunun ayrıca doğrulanması gerekiyor (ileri faz). |
+
+Bu bulgular `apps/worker/src/services/tsoft-client.ts`'deki `mapProduct()`'a ve `apps/worker/src/services/sync.service.ts`'e işlendi.
 
 Senkron her durumda **sunucu tarafı worker** üzerinden çalışır ve **yalnızca manuel "Şimdi Senkronize Et" tetiklemesiyle** başlar (otomatik/zamanlanmış senkron MVP kapsamında yok — bkz. §5, §7); istemciden asla doğrudan tsoft'a istek atılmaz, kimlik bilgisi istemciye hiçbir şekilde ulaşmaz.
 
@@ -270,17 +282,21 @@ Tüm sayfalar **aynı React bileşen ağacı** ile hem web önizlemede hem Playw
 
 ## 7. Açık Sorular
 
-**Tüm sorular çözüldü:**
+**Çözülen sorular:**
 
 | # | Soru | Karar |
 |---|---|---|
-| 1 | tsoft erişimi | Gerçek API mevcut; Rankify projesindeki `tsoft-client.ts` uyarlanacak (§1) |
+| 1 | tsoft erişimi | Gerçek API mevcut; Rankify projesindeki `tsoft-client.ts` uyarlandı (§1) |
 | 2 | Çoklu dil kapsamı | MVP'de yok, yalnızca Türkçe; AR/EN Faz 5'e ertelendi (§5) |
 | 3 | Yönetici rolü | Tek rol yeterli, rol/izin ayrımı yok (§2, §3) |
 | 4 | Hacim | Ortalama 25 katalog/ay, katalogda ortalama 50 ürün (§5, PDF ölçek planlaması buna göre yapıldı) |
-| 5 | Satış performansı verisi | tsoft API'sinden `order/get` ile hesaplanacak, Rankify'nin `getSalesViaOrders` yöntemi aynen kullanılacak (§1) |
-| 6 | Marka paleti | `DESIGN (3).md`'nin hex token seti birebir kullanılacak (§0) |
+| 5 | Satış performansı verisi | tsoft API'sinden `order/get` ile hesaplanıyor, Rankify'nin `getSalesViaOrders` yöntemi aynen kullanılıyor (§1) |
+| 6 | Marka paleti | `DESIGN (3).md`'nin hex token seti birebir kullanılıyor (§0) |
 | 7 | Barındırma | Vercel (frontend) + **Railway** (worker/API — Rankify ile aynı sağlayıcı, netleşti) |
 | 8 | Stok gerçek zamanlılığı | Anlık değil — yalnızca manuel "Şimdi Senkronize Et" tetiklemesiyle güncellenir (§1, §5) |
 | 9 | Kur kaynağı | Tamamen manuel giriş, otomatik kur API'si yok |
-| 10 | tsoft API kimlik bilgileri | Rankify projesindeki mevcut kayıtlar/kalıp kullanılacak (§1, §6) |
+| 10 | tsoft API kimlik bilgileri | Rankify projesindeki mevcut kayıtlar kullanıldı, Faz 0 keşfi bu kimlik bilgileriyle çalıştırıldı (§1, §6) |
+
+**Yeni açık soru (Faz 0 keşfinden çıktı):**
+
+11. **Beden/varyant API izni:** Mevcut tsoft API kullanıcısı (`ensartomakin@he-qa.com`) beden bazlı stok/varyant verisine erişemiyor — `product/getSubProducts`, `getVariants`, `getDetail`, `getStock` uçları "erişim yetkiniz bulunmamaktadır" hatası veriyor, `product/get` de hiçbir parametreyle alt varyant dizisi döndürmüyor. **İki seçenek var:** (a) tsoft yönetici panelinden bu API kullanıcısına ilgili modül izinleri açılır — en temiz çözüm, ya da (b) MVP'de bedenler Ürün Detay ekranından manuel girilir (mevcut geçici çözüm, `sync.service.ts`'e not düşüldü). Hangisini tercih edersiniz?

@@ -16,6 +16,8 @@ model Product {
   category           Category  @relation(fields: [categoryId], references: [id])
   description        String?
   fabricInfo         String?
+  colorLabel         String?   // tsoft'ta her renk ayrı bir ürün/ProductCode'dur — bu ürünün kendi rengi
+  tsoftRelatedIds    String[]  @default([]) // RelatedProductsIds1 — kardeş renk varyantlarının tsoftProductId'leri
   sourcePriceTry     Decimal   @db.Decimal(12, 2)
   stockStatus        StockStatus @default(UNKNOWN)
   manualSortWeight   Int?

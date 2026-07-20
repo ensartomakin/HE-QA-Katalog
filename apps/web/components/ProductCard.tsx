@@ -60,7 +60,7 @@ export function ProductCard({ product, discountPct }: { product: Product; discou
         </div>
       )}
 
-      {product.sizes.length > 0 && (
+      {product.sizes.length > 0 ? (
         <div className="flex flex-wrap gap-[5px] text-[14px] text-[var(--color-bark)]">
           {product.sizes.map((s) => (
             <span key={s.id} className="px-[9px] py-[2px] border border-[var(--color-pebble)] rounded-[20px]">
@@ -68,7 +68,11 @@ export function ProductCard({ product, discountPct }: { product: Product; discou
             </span>
           ))}
         </div>
+      ) : (
+        <div className="text-[14px] text-[var(--color-bark)] italic">Beden bilgisi girilmedi</div>
       )}
+
+      {product.fabricInfo && <div className="text-[14px] text-[var(--color-bark)]">{product.fabricInfo}</div>}
 
       <div className="text-[21px] font-medium">{wholesaleTry.toFixed(2)} TL</div>
     </div>

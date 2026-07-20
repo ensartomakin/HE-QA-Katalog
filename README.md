@@ -13,8 +13,8 @@ packages/db   Paylaşılan Prisma şeması + calculatePrice()
 ## Yerel Kurulum
 
 1. PostgreSQL'i çalıştırın (yerel veya Railway'de bir dev veritabanı).
-2. `apps/worker/.env.example` → `apps/worker/.env` kopyalayıp doldurun (`DATABASE_URL`, `ENCRYPTION_KEY`, `INTERNAL_API_KEY`).
-3. `apps/web/.env.example` → `apps/web/.env.local` kopyalayıp doldurun (`WORKER_URL`, aynı `INTERNAL_API_KEY`).
+2. `apps/worker/.env.example` → `apps/worker/.env` kopyalayıp doldurun (`DATABASE_URL`, `ENCRYPTION_KEY`, `INTERNAL_API_KEY`, `JWT_SECRET`).
+3. `apps/web/.env.example` → `apps/web/.env.local` kopyalayıp doldurun (`WORKER_URL`, aynı `INTERNAL_API_KEY` ve aynı `JWT_SECRET`).
 4. Bağımlılıkları kurun:
    ```
    npm install
@@ -28,8 +28,9 @@ packages/db   Paylaşılan Prisma şeması + calculatePrice()
    npm run dev:worker   # http://localhost:3001
    npm run dev:web      # http://localhost:3000
    ```
-7. Admin panelde **Ayarlar** sekmesinden tsoft bağlantı bilgilerini girip test edin, ardından **Senkronizasyon** sekmesinden "Şimdi Senkronize Et" ile ilk veri çekimini yapın.
+7. `http://localhost:3000` ilk açılışta `/login`'e yönlendirir — hiç yönetici yoksa **ilk kurulum formu** çıkar (ad/e-posta/şifre girip hesap oluşturursunuz), sonraki girişlerde normal giriş formu görünür.
+8. Admin panelde **Ayarlar** sekmesinden tsoft bağlantı bilgilerini girip test edin, ardından **Senkronizasyon** sekmesinden "Şimdi Senkronize Et" ile ilk veri çekimini yapın.
 
-## Faz 0 — Kalan keşif adımı
+## Faz 0 — Tamamlandı (2026-07-18)
 
-`apps/worker/src/services/tsoft-client.ts` içindeki `getCategoryProductsRawSample()` fonksiyonu, gerçek HE-QA tsoft hesabına karşı çalıştırılıp ham ürün yanıtı incelenmeli. Bu, `mapProduct()`'ın şu an `undefined` bıraktığı **kumaş bilgisi, renk seçenekleri, uzun açıklama ve görsel galerisi** alanlarının gerçek T-Soft anahtar adlarını ortaya çıkaracak (bkz. `src/types/tsoft.ts` içindeki TODO not).
+Gerçek HE-QA tsoft hesabına karşı ham veri keşfi yapıldı, bulgular `docs/SISTEM-TASARIMI.md` §1 ve `apps/worker/src/types/tsoft.ts`'e işlendi. Özet: açıklama ve kumaş bilgisi `Details` HTML alanından geliyor (kumaş regex ile en iyi çaba çıkarılıyor); renk seçenekleri T-Soft'ta ayrı ürünler olarak modellenmiş ve `RelatedProductsIds1` ile birbirine bağlı; **beden/varyant kırılımına bu API kullanıcısıyla erişilemiyor** (tsoft panelinden ek modül izni gerekiyor — bkz. `docs/SISTEM-TASARIMI.md` §7, madde 11, açık soru olarak kullanıcıya iletildi).

@@ -246,6 +246,23 @@ export class TSoftClient implements TSoftClientApi {
 
   private _loggedProductKeys = false;
 
+  /** Details HTML'inden düz metin çıkarır (etiketleri söker, boşlukları sadeleştirir). */
+  private stripHtml(html: string): string {
+    return html
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /** Faz 0 keşfinde görüldüğü üzere kumaş bilgisi ayrı bir alan değil, Details HTML'inin
+   *  içine gömülü serbest metin. "%NN ... kumaş/karışım" örüntüsünü en iyi çaba ile yakalar;
+   *  bulunamazsa null döner (admin panelden manuel girilebilir). */
+  private extractFabricInfo(detailsText: string): string | undefined {
+    const match = detailsText.match(/%\d+[^.]*?(kumaş|karışım|likra|elastan|pamuk|polyester|poliamid)[^.]*\./i);
+    return match ? match[0].trim() : undefined;
+  }
+
   private mapProduct(p: Record<string, unknown>): TSoftProduct {
     if (!this._loggedProductKeys) {
       this._loggedProductKeys = true;
@@ -274,8 +291,16 @@ export class TSoftClient implements TSoftClientApi {
 
     const seoLink = String(p.SeoLink ?? p.seoLink ?? p.SEOLink ?? p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.Slug ?? p.slug ?? '');
 
-    // TODO (Faz 0): getCategoryProductsRawSample() ile HE-QA hesabına karşı ham veri incelenip
-    // description / fabricInfo / colors / images alanlarının gerçek T-Soft anahtarları netleştirilecek.
+    // Faz 0 keşfi (bkz. types/tsoft.ts) — Details HTML'den açıklama + kumaş bilgisi türetilir,
+    // renk Additional2/5'ten, kardeş renk varyantları RelatedProductsIds1'den okunur.
+    const detailsHtml = String(p.Details ?? '');
+    const detailsText = detailsHtml ? this.stripHtml(detailsHtml) : undefined;
+    const colorLabel = String(p.Additional2 ?? p.Additional5 ?? '').trim() || undefined;
+    const relatedProductIds = String(p.RelatedProductsIds1 ?? '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean);
+
     return {
       productId: String(p.ProductId ?? p.productId ?? p.Id ?? p.id ?? ''),
       productCode: String(p.ProductCode ?? p.productCode ?? ''),
@@ -290,6 +315,10 @@ export class TSoftClient implements TSoftClientApi {
       variants,
       discountRate,
       seoUrl: seoLink,
+      description: detailsText,
+      fabricInfo: detailsText ? this.extractFabricInfo(detailsText) : undefined,
+      colorLabel,
+      relatedProductIds,
     };
   }
 

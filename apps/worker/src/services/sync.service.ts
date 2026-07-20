@@ -20,6 +20,58 @@ function stockStatusFromVariants(product: TSoftProduct): 'IN_STOCK' | 'LOW_STOCK
   return 'IN_STOCK';
 }
 
+// Yaygın Türkçe renk adları için yaklaşık hex önizleme — kesin bir tsoft renk kodu
+// alanı olmadığından (bkz. types/tsoft.ts) bu sadece UI'da nokta/daire önizlemesi içindir.
+const COLOR_HEX_MAP: Record<string, string> = {
+  siyah: '#1a1a1a', beyaz: '#f5f5f5', kirik_beyaz: '#f2ede1', ekru: '#e8dcc8',
+  bej: '#d9c7a3', kahve: '#5a3d2b', kahverengi: '#5a3d2b', taba: '#8a6642',
+  gri: '#8c8c8c', antrasit: '#3a3a3a', lacivert: '#1b2a4a', mavi: '#2f5d9c',
+  turkuaz: '#2a9d9a', yesil: '#4a5d3a', haki: '#6b6f4a', hardal: '#c9a23a',
+  sari: '#e0c341', turuncu: '#d9722c', kirmizi: '#b3312c', bordo: '#5c1f2b',
+  pembe: '#d99aa3', mor: '#6b4a7a', gul_kurusu: '#a9707a', vizon: '#9b8b7a',
+};
+
+function colorNameToHex(name: string): string | undefined {
+  const key = name
+    .toLocaleLowerCase('tr-TR')
+    .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+    .replace(/[^a-z]+/g, '_')
+    .replace(/(^_|_$)/g, '');
+  return COLOR_HEX_MAP[key];
+}
+
+/** Faz 0 bulgusu: tsoft'ta renk seçenekleri ayrı ürünler halinde gelir (RelatedProductsIds1
+ *  ile birbirine bağlı). Senkron sonrası bu ilişkiyi kullanarak her ürünün "renk seçenekleri"
+ *  swatch listesini (kardeşlerinin colorLabel'larından) yeniden inşa eder. */
+async function syncColorSwatches(): Promise<void> {
+  const products = await prisma.product.findMany({
+    where: { archivedAt: null, tsoftRelatedIds: { isEmpty: false } },
+    select: { id: true, tsoftProductId: true, colorLabel: true, tsoftRelatedIds: true },
+  });
+  if (products.length === 0) return;
+
+  const byTsoftId = new Map(products.map((p) => [p.tsoftProductId, p]));
+
+  for (const product of products) {
+    const siblings = product.tsoftRelatedIds
+      .filter((id) => id !== product.tsoftProductId)
+      .map((id) => byTsoftId.get(id))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p?.colorLabel));
+
+    await prisma.productColor.deleteMany({ where: { productId: product.id } });
+    if (siblings.length === 0) continue;
+
+    // Kendi rengi de listede ilk sırada gösterilir
+    const ownColor = product.colorLabel ? [{ name: product.colorLabel, hexPreview: colorNameToHex(product.colorLabel) }] : [];
+    const siblingColors = siblings.map((s) => ({ name: s.colorLabel!, hexPreview: colorNameToHex(s.colorLabel!) }));
+    const all = [...ownColor, ...siblingColors].filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
+
+    await prisma.productColor.createMany({
+      data: all.map((c, i) => ({ productId: product.id, name: c.name, hexPreview: c.hexPreview, sortOrder: i })),
+    });
+  }
+}
+
 /**
  * Manuel tetiklemeli tam senkron — HE-QA için otomatik/zamanlanmış senkron MVP kapsamında
  * yok (netleşti), bu fonksiyon yalnızca "Şimdi Senkronize Et" isteğiyle çağrılır.
@@ -67,6 +119,8 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
             categoryId: internalCategoryId,
             description: p.description ?? null,
             fabricInfo: p.fabricInfo ?? null,
+            colorLabel: p.colorLabel ?? null,
+            tsoftRelatedIds: p.relatedProductIds ?? [],
             sourcePriceTry: listPrice,
             stockStatus: stockStatusFromVariants(p),
             lastSyncedAt: new Date(),
@@ -79,6 +133,8 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
             categoryId: internalCategoryId,
             description: p.description ?? undefined,
             fabricInfo: p.fabricInfo ?? undefined,
+            colorLabel: p.colorLabel ?? undefined,
+            tsoftRelatedIds: p.relatedProductIds ?? undefined,
             sourcePriceTry: listPrice,
             stockStatus: stockStatusFromVariants(p),
             lastSyncedAt: new Date(),
@@ -89,21 +145,13 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
           },
         });
 
-        // Bedenler — T-Soft varyantlarından türetilir
-        await prisma.productSize.deleteMany({ where: { productId: product.id } });
-        if (p.variants.length > 0) {
-          await prisma.productSize.createMany({
-            data: p.variants.map((v, i) => ({ productId: product.id, label: v.sizeName, sortOrder: i })),
-          });
-        }
-
-        // Renkler — Faz 0 keşfi tamamlanana kadar boş kalabilir (bkz. types/tsoft.ts TODO)
-        if (p.colors && p.colors.length > 0) {
-          await prisma.productColor.deleteMany({ where: { productId: product.id } });
-          await prisma.productColor.createMany({
-            data: p.colors.map((c, i) => ({ productId: product.id, name: c.name, hexPreview: c.hexPreview, sortOrder: i })),
-          });
-        }
+        // Bedenler: Faz 0 keşfi HE-QA'nın tsoft API kullanıcısının beden/alt varyant
+        // modüllerine erişim izni OLMADIĞINI ortaya çıkardı (product/get hiçbir parametre
+        // kombinasyonuyla beden kırılımı döndürmüyor; product/getSubProducts, getVariants,
+        // getDetail, getStock uçları "erişim yetkiniz yok" hatası veriyor — bkz.
+        // types/tsoft.ts). Bu yüzden burada UYDURMA bir "Tek Beden" kaydı YAZILMIYOR —
+        // tsoft panelinden API kullanıcısına ilgili modül izni verilene kadar bedenler
+        // Ürün Detay ekranından manuel girilecek (açık soru, kullanıcıya iletildi).
 
         // Ana görsel
         if (p.imageUrl) {
@@ -117,6 +165,12 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
         upserted++;
       }
     }
+
+    // Renk seçenekleri — tsoft'ta her renk ayrı bir ürün olduğundan (bkz. types/tsoft.ts),
+    // "renk seçenekleri" listesi bu ürünün RelatedProductsIds1 ile işaret ettiği kardeş
+    // ürünlerin colorLabel'larından ikinci bir geçişte inşa edilir (hepsi upsert edildikten
+    // sonra, aksi halde henüz DB'de olmayan kardeşler kaçırılır).
+    await syncColorSwatches();
 
     // Kaynakta artık görünmeyen ürünler — hard delete YOK, kademeli arşivleme (bkz. docs §6)
     const missingProducts = await prisma.product.findMany({
