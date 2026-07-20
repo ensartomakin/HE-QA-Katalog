@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/session';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/bootstrap', '/api/auth/status'];
+// /catalog-print, Playwright'ın (worker'da çalışan) PDF üretirken ziyaret ettiği sayfa —
+// tarayıcı oturumu taşımaz, bu yüzden bilinçli olarak oturum kontrolünden muaf tutuluyor.
+// Kataloglar tahmin edilemez cuid id ile korunuyor (bkz. docs/SISTEM-TASARIMI.md §6, Faz 1
+// için kabul edilebilir bir basitleştirme — üretimde imzalı/süreli bağlantıya evrilebilir).
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/bootstrap', '/api/auth/status', '/catalog-print'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

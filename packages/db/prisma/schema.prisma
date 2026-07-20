@@ -75,13 +75,14 @@ model ProductSize {
 }
 
 model Category {
-  id       String     @id @default(cuid())
-  name     String     @unique
-  slug     String     @unique
-  parentId String?
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryTree")
-  products Product[]
+  id             String     @id @default(cuid())
+  tsoftCategoryId String    @unique
+  name           String
+  slug           String     @unique
+  parentId       String?
+  parent         Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children       Category[] @relation("CategoryTree")
+  products       Product[]
 }
 
 model ExchangeRate {

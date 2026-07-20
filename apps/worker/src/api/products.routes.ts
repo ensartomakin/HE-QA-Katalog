@@ -4,10 +4,20 @@ import { prisma } from '../db/prisma';
 export const productsRouter = Router();
 
 productsRouter.get('/', async (req: Request, res: Response) => {
-  const { categoryIds, search, sort } = req.query as { categoryIds?: string; search?: string; sort?: string };
+  const { categoryIds, search, sort, ids } = req.query as { categoryIds?: string; search?: string; sort?: string; ids?: string };
+
+  // Kategori, arama veya doğrudan id listesi olmadan sorgu çalıştırılmaz — "hangi kategoriyi
+  // seçtiysem o kategoriye ait ürünleri getir, tüm kataloğu çekip sistemi şişirme" isteği
+  // (bkz. konuşma). `ids` parametresi Katalog Oluşturucu'nun seçili ürünleri tek seferde
+  // çekmesi için var (kategori/arama filtresine bağlı değil).
+  if (!categoryIds && !search && !ids) {
+    res.json({ products: [] });
+    return;
+  }
 
   const where = {
     archivedAt: null,
+    ...(ids ? { id: { in: ids.split(',') } } : {}),
     ...(categoryIds ? { categoryId: { in: categoryIds.split(',') } } : {}),
     ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
   };

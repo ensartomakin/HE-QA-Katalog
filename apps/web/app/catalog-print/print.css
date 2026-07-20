@@ -1,0 +1,206 @@
+/* PDF katalog şablonu — yalnızca /catalog-print altında yüklenir.
+   docs/SISTEM-TASARIMI.md §4: A4 sayfa, kompozisyon görsellerden, renk/tipografi
+   DESIGN (3).md token'larından (bkz. §0). */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.catalog-print {
+  font-family: var(--font-beausite);
+  color: var(--color-ink-black);
+  background: var(--color-bone-white);
+}
+
+.pdf-page {
+  width: 210mm;
+  height: 297mm;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bone-white);
+  break-after: page;
+  page-break-after: always;
+}
+
+.pdf-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+/* --- Kapak sayfası --- */
+.cover-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20mm 18mm;
+}
+
+.cover-brand {
+  font-size: 16px;
+  letter-spacing: -0.022em;
+}
+
+.cover-brand-sub {
+  font-size: 10px;
+  color: var(--color-bark);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2mm;
+}
+
+.cover-title {
+  font-size: 42px;
+  line-height: 0.97;
+  letter-spacing: -0.036em;
+  margin-top: 40mm;
+}
+
+.cover-subtitle {
+  font-size: 14px;
+  color: var(--color-bark);
+  margin-top: 6mm;
+  max-width: 110mm;
+  line-height: 1.5;
+}
+
+.cover-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid var(--color-pebble);
+  padding-top: 6mm;
+  font-size: 11px;
+  color: var(--color-bark);
+}
+
+/* --- Ürün grid sayfası --- */
+.grid-page {
+  padding: 15mm 12mm;
+}
+
+.grid-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8mm;
+  border-bottom: 1px solid var(--color-pebble);
+  padding-bottom: 3mm;
+}
+
+.grid-page-header .catalog-name {
+  font-size: 14px;
+}
+
+.grid-page-header .page-badge {
+  font-size: 10px;
+  color: var(--color-bark);
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8mm 6mm;
+}
+
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+}
+
+.product-image-wrap {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--color-linen);
+}
+
+.product-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-name {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  margin-top: 2mm;
+}
+
+.product-code {
+  font-size: 9px;
+  color: var(--color-bark);
+}
+
+.product-colors {
+  display: flex;
+  gap: 1.5mm;
+  margin-top: 1mm;
+}
+
+.product-color-dot {
+  width: 3mm;
+  height: 3mm;
+  border-radius: 50%;
+  border: 0.3mm solid var(--color-pebble);
+}
+
+.product-sizes {
+  font-size: 8px;
+  color: var(--color-bark);
+  margin-top: 1mm;
+}
+
+.product-fabric {
+  font-size: 8px;
+  color: var(--color-bark);
+  margin-top: 1mm;
+  line-height: 1.35;
+}
+
+.product-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  margin-top: 2mm;
+}
+
+.product-price {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.product-price-badge {
+  font-size: 8px;
+  background: var(--color-linen);
+  border: 0.3mm solid var(--color-pebble);
+  border-radius: 20px;
+  padding: 0.8mm 2.5mm;
+  color: var(--color-bark);
+}
+
+/* --- Alt güven bandı (kapak sayfasında) --- */
+.trust-band {
+  display: flex;
+  gap: 10mm;
+  margin-top: 12mm;
+}
+
+.trust-item {
+  font-size: 9px;
+  color: var(--color-bark);
+  max-width: 30mm;
+  line-height: 1.4;
+}
+
+.trust-item strong {
+  display: block;
+  color: var(--color-ink-black);
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 1mm;
+}
