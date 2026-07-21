@@ -20,8 +20,15 @@ export default function ProductsPage() {
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [sort, setSort] = useState<'performance' | 'manual' | 'newest'>('newest');
   const [syncingCategoryId, setSyncingCategoryId] = useState<string | null>(null);
+  const [manualOrder, setManualOrder] = useState<string[]>([]);
+  const [dragId, setDragId] = useState<string | null>(null);
   const selection = useCatalogSelection();
   const queryClient = useQueryClient();
+
+  const saveOrder = useMutation({
+    mutationFn: (ids: string[]) => fetchJson('/api/products/sort-order', { method: 'PUT', body: JSON.stringify({ ids }) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
+  });
 
   const { data: categoriesData, refetch: refetchCategories } = useQuery({
     queryKey: ['categories'],
@@ -71,6 +78,29 @@ export default function ProductsPage() {
 
   const products = productsData?.products ?? [];
   const discountPct = 40; // Settings.wholesaleDiscountPct — sabit kural (bkz. docs §2)
+
+  // Manuel sekmede yerel sıra state'i tutulur ki sürükle-bırak sırasında her adımda
+  // sunucuyu beklemeden anında görsel geri bildirim verilsin; sunucudan yeni veri gelince
+  // (kategori/arama değişince) senkronize edilir.
+  useEffect(() => {
+    if (sort === 'manual') setManualOrder(products.map((p) => p.id));
+  }, [sort, productsData]);
+
+  const productById = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+  const displayedProducts =
+    sort === 'manual' ? manualOrder.map((id) => productById.get(id)).filter((p): p is Product => Boolean(p)) : products;
+
+  function handleDrop(targetId: string) {
+    if (!dragId || dragId === targetId) return;
+    setManualOrder((prev) => {
+      const next = prev.filter((id) => id !== dragId);
+      const targetIndex = next.indexOf(targetId);
+      next.splice(targetIndex, 0, dragId);
+      saveOrder.mutate(next);
+      return next;
+    });
+    setDragId(null);
+  }
 
   return (
     <main className="max-w-[1200px] mx-auto pb-[80px]">
@@ -153,9 +183,23 @@ export default function ProductsPage() {
 
         {isLoading && <p className="text-[14px] text-[var(--color-bark)]">Yükleniyor…</p>}
 
+        {sort === 'manual' && hasFilter && (
+          <p className="text-[14px] text-[var(--color-bark)]">Sırayı değiştirmek için ürün kartlarını sürükleyip bırakın.</p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-[25px]">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} discountPct={discountPct} />
+          {displayedProducts.map((p) => (
+            <div
+              key={p.id}
+              draggable={sort === 'manual'}
+              onDragStart={() => setDragId(p.id)}
+              onDragOver={(e) => sort === 'manual' && e.preventDefault()}
+              onDrop={() => handleDrop(p.id)}
+              onDragEnd={() => setDragId(null)}
+              style={{ opacity: dragId === p.id ? 0.4 : 1, cursor: sort === 'manual' ? 'grab' : undefined }}
+            >
+              <ProductCard product={p} discountPct={discountPct} />
+            </div>
           ))}
         </div>
 

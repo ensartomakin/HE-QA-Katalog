@@ -20,6 +20,7 @@ export default function NewCatalogPage() {
   const [orderedIds, setOrderedIds] = useState<string[]>(() => Array.from(selection.selectedIds));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [currency, setCurrency] = useState<CatalogCurrency>('TRY');
 
   const { data } = useQuery({
     queryKey: ['products', 'byIds', orderedIds.join(',')],
@@ -27,6 +28,12 @@ export default function NewCatalogPage() {
     enabled: orderedIds.length > 0,
   });
   const { data: meData } = useQuery({ queryKey: ['me'], queryFn: () => fetchJson<{ user: { email: string } }>('/api/auth/me') });
+  const { data: ratesData } = useQuery({
+    queryKey: ['exchange-rates'],
+    queryFn: () => fetchJson<{ rates: { currency: 'USD' | 'EUR'; ratePerTry: string }[] }>('/api/settings/exchange-rates'),
+  });
+  const missingRate =
+    (currency === 'USD' || currency === 'EUR') && !ratesData?.rates.some((r) => r.currency === currency);
 
   const productById = new Map((data?.products ?? []).map((p) => [p.id, p]));
 
@@ -97,16 +104,27 @@ export default function NewCatalogPage() {
             </label>
             <label className="flex flex-col gap-[5px] text-[14px]">
               Para Birimi
-              <select name="currency" defaultValue="TRY" className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] outline-none">
+              <select
+                name="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value as CatalogCurrency)}
+                className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] outline-none"
+              >
                 <option value="TRY">TRY</option>
                 <option value="USD">USD (Ayarlar'da kur girilmiş olmalı)</option>
                 <option value="EUR">EUR (Ayarlar'da kur girilmiş olmalı)</option>
               </select>
             </label>
 
+            {missingRate && (
+              <p className="text-[14px] text-red-700">
+                {currency} için kur tanımlı değil. Önce Ayarlar sayfasından kur girin.
+              </p>
+            )}
+
             {error && <p className="text-[14px] text-red-700">{error}</p>}
 
-            <button type="submit" className="btn-ghost justify-center" disabled={saving || orderedIds.length === 0}>
+            <button type="submit" className="btn-ghost justify-center" disabled={saving || orderedIds.length === 0 || missingRate}>
               {saving ? 'Kaydediliyor…' : `→ Kaydet (${orderedIds.length} ürün)`}
             </button>
           </div>

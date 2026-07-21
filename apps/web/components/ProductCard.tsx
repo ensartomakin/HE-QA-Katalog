@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { calculatePrice } from '@he-qa/db';
 import type { Product } from '@/lib/types';
 import { useCatalogSelection } from '@/lib/catalog-selection.store';
@@ -45,7 +46,12 @@ export function ProductCard({ product, discountPct }: { product: Product; discou
 
       <div className="text-[14px] text-[var(--color-bark)]">{STOCK_LABEL[product.stockStatus]}</div>
       <div className="text-[21px] leading-[1.2]">{product.name}</div>
-      <div className="text-[14px] text-[var(--color-bark)]">{product.code}</div>
+      <div className="flex items-center justify-between text-[14px] text-[var(--color-bark)]">
+        <span>{product.code}</span>
+        <Link href={`/products/${product.id}`} className="hover:underline">
+          Düzenle →
+        </Link>
+      </div>
 
       {product.colors.length > 0 && (
         <div className="flex gap-[5px]">
