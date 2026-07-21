@@ -24,6 +24,9 @@ RUN npm run build --workspace apps/worker
 FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# apt-get'in (playwright install --with-deps içinde çağrılıyor) tzdata gibi paketlerde
+# görünmez bir onay isteminde sonsuza kadar beklemesini önler — bu olmadan build donuyordu.
+ENV DEBIAN_FRONTEND=noninteractive
 
 COPY package*.json ./
 COPY packages/db/package*.json packages/db/
