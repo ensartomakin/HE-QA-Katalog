@@ -5,6 +5,7 @@ import { upsertCredentials, hasCredentials } from '../db/credentials.repo';
 import { testConnection } from '../services/tsoft-client';
 import { resetTsoftClientCache } from '../services/tsoft-client';
 import { logger } from '../utils/logger';
+import { asyncHandler } from '../utils/async-handler';
 
 export const settingsRouter = Router();
 
@@ -16,31 +17,40 @@ const tsoftCredentialsSchema = z.object({
   apiToken: z.string().optional(),
 });
 
-settingsRouter.get('/tsoft-credentials/status', async (_req: Request, res: Response) => {
-  res.json({ configured: await hasCredentials() });
-});
+settingsRouter.get(
+  '/tsoft-credentials/status',
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ configured: await hasCredentials() });
+  })
+);
 
-settingsRouter.post('/tsoft-credentials/test', async (req: Request, res: Response) => {
-  const parsed = tsoftCredentialsSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const result = await testConnection(parsed.data);
-  res.json(result);
-});
+settingsRouter.post(
+  '/tsoft-credentials/test',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = tsoftCredentialsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    const result = await testConnection(parsed.data);
+    res.json(result);
+  })
+);
 
-settingsRouter.post('/tsoft-credentials', async (req: Request, res: Response) => {
-  const parsed = tsoftCredentialsSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  await upsertCredentials(parsed.data);
-  resetTsoftClientCache();
-  logger.info('[settings] T-Soft kimlik bilgileri güncellendi');
-  res.json({ ok: true });
-});
+settingsRouter.post(
+  '/tsoft-credentials',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = tsoftCredentialsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    await upsertCredentials(parsed.data);
+    resetTsoftClientCache();
+    logger.info('[settings] T-Soft kimlik bilgileri güncellendi');
+    res.json({ ok: true });
+  })
+);
 
 const settingsUpdateSchema = z.object({
   wholesaleDiscountPct: z.number().min(0).max(100).optional(),
@@ -48,25 +58,31 @@ const settingsUpdateSchema = z.object({
   brandLogoUrl: z.string().url().optional(),
 });
 
-settingsRouter.get('/', async (_req: Request, res: Response) => {
-  const settings = await prisma.settings.upsert({
-    where: { id: 'singleton' },
-    create: { id: 'singleton' },
-    update: {},
-  });
-  res.json(settings);
-});
+settingsRouter.get(
+  '/',
+  asyncHandler(async (_req: Request, res: Response) => {
+    const settings = await prisma.settings.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton' },
+      update: {},
+    });
+    res.json(settings);
+  })
+);
 
-settingsRouter.put('/', async (req: Request, res: Response) => {
-  const parsed = settingsUpdateSchema.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.flatten() });
-    return;
-  }
-  const settings = await prisma.settings.upsert({
-    where: { id: 'singleton' },
-    create: { id: 'singleton', ...parsed.data },
-    update: parsed.data,
-  });
-  res.json(settings);
-});
+settingsRouter.put(
+  '/',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = settingsUpdateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    const settings = await prisma.settings.upsert({
+      where: { id: 'singleton' },
+      create: { id: 'singleton', ...parsed.data },
+      update: parsed.data,
+    });
+    res.json(settings);
+  })
+);
