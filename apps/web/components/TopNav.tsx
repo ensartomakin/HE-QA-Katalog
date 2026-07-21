@@ -9,6 +9,7 @@ const links = [
   { href: '/catalogs', label: 'Katalog Geçmişi' },
   { href: '/sync', label: 'Senkronizasyon' },
   { href: '/settings', label: 'Ayarlar' },
+  { href: '/users', label: 'Kullanıcılar' },
 ];
 
 export function TopNav() {

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { bootstrapFirstAdmin, hasAnyAdmin, login, signSessionToken } from '../services/auth.service';
+import { bootstrapFirstAdmin, createAdmin, deleteAdmin, hasAnyAdmin, listAdmins, login, signSessionToken } from '../services/auth.service';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils/async-handler';
 
@@ -55,6 +55,51 @@ authRouter.post(
       res.json(result);
     } catch (err) {
       res.status(401).json({ error: err instanceof Error ? err.message : 'Giriş başarısız' });
+    }
+  })
+);
+
+// Kullanıcı Yönetimi — tek rol, tüm adminler eşit yetkili (netleşti), bu yüzden ekstra
+// bir izin kontrolü yok (worker'a erişim zaten requireInternalAuth ile korunuyor).
+authRouter.get(
+  '/users',
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ users: await listAdmins() });
+  })
+);
+
+const createUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  password: z.string().min(8, 'Şifre en az 8 karakter olmalı'),
+});
+
+authRouter.post(
+  '/users',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = createUserSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const user = await createAdmin(parsed.data.email, parsed.data.name, parsed.data.password);
+      logger.info(`[auth] yeni kullanıcı eklendi: ${user.email}`);
+      res.json({ user });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Kullanıcı eklenemedi' });
+    }
+  })
+);
+
+authRouter.delete(
+  '/users/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    try {
+      await deleteAdmin(req.params.id);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(409).json({ error: err instanceof Error ? err.message : 'Kullanıcı silinemedi' });
     }
   })
 );

@@ -25,8 +25,14 @@ catalogsRouter.post(
       res.status(400).json({ error: parsed.error.flatten() });
       return;
     }
-    const catalog = await createCatalog(parsed.data);
-    res.json({ catalog });
+    try {
+      const catalog = await createCatalog(parsed.data);
+      res.json({ catalog });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[catalogs/create] ${message}`);
+      res.status(400).json({ error: message });
+    }
   })
 );
 

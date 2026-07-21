@@ -11,6 +11,11 @@ export interface CreateCatalogInput {
 }
 
 export async function createCatalog(input: CreateCatalogInput) {
+  // Kur eksikse katalog oluşturma anında engelle — önceden bu kontrol yalnızca önizleme/PDF
+  // üretiminde (getCatalogDetail) yapılıyordu, kullanıcı katalog kaydedildikten SONRA
+  // opak bir hatayla karşılaşıyordu.
+  await getExchangeRate(input.currency);
+
   const catalog = await prisma.catalog.create({
     data: {
       name: input.name,
@@ -35,7 +40,7 @@ export async function listCatalogs() {
   });
 }
 
-async function getExchangeRate(currency: 'TRY' | 'USD' | 'EUR'): Promise<number> {
+export async function getExchangeRate(currency: 'TRY' | 'USD' | 'EUR'): Promise<number> {
   if (currency === 'TRY') return 1;
   const rate = await prisma.exchangeRate.findFirst({ where: { currency }, orderBy: { effectiveAt: 'desc' } });
   if (!rate) throw new Error(`${currency} için kur tanımlı değil. Lütfen Ayarlar'dan kur girin.`);

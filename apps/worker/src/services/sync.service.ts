@@ -204,6 +204,29 @@ export async function syncCategoryProducts(tsoftCategoryId: string): Promise<{ u
 }
 
 /**
+ * Satış performansı senkronu — `order/get` siparişlerinden ürün bazlı adet toplanır
+ * (bkz. tsoft-client.ts getSalesViaOrders — report/getSalesReport bu hesapta kapalı) ve
+ * `Product.salesScore`'a satılan adet olarak yazılır. Ürün Seçim Paneli'ndeki "Performans"
+ * sekmesi bu alana göre sıralıyor (bkz. products.routes.ts sort=performance).
+ */
+export async function syncSalesPerformance(days = 30): Promise<{ updated: number; matched: number }> {
+  const client = await getTsoftClient();
+  const sales = await client.getSalesReport([], days);
+
+  let matched = 0;
+  for (const s of sales) {
+    const result = await prisma.product.updateMany({
+      where: { code: s.productCode },
+      data: { salesScore: s.soldQuantity14Days },
+    });
+    matched += result.count;
+  }
+
+  logger.info(`[syncSalesPerformance] gün=${days} tsoft'tan gelen=${sales.length} eşleşen=${matched}`);
+  return { updated: sales.length, matched };
+}
+
+/**
  * Tam senkron (tüm kategoriler + tüm ürünler) — manuel tetiklemeli, büyük katalog
  * boyutu nedeniyle uzun sürebilir. Ürün Seçim Paneli artık varsayılan olarak bunu
  * kullanmıyor (kategoriye göre anlık yükleme yapıyor, bkz. syncCategoryProducts),

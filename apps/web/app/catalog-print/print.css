@@ -49,6 +49,13 @@
   margin-top: 2mm;
 }
 
+.cover-logo {
+  max-height: 14mm;
+  max-width: 60mm;
+  object-fit: contain;
+  display: block;
+}
+
 .cover-title {
   font-size: 42px;
   line-height: 0.97;

@@ -55,7 +55,10 @@ function ProductCardPrint({ item, currency }: { item: CatalogItem; currency: Cat
 }
 
 export default async function CatalogPrintPage({ params }: { params: { id: string } }) {
-  const { catalog } = await workerFetch<{ catalog: CatalogDetail | null }>(`/api/catalogs/${params.id}`);
+  const [{ catalog }, settings] = await Promise.all([
+    workerFetch<{ catalog: CatalogDetail | null }>(`/api/catalogs/${params.id}`),
+    workerFetch<{ brandLogoUrl: string | null }>('/api/settings'),
+  ]);
 
   if (!catalog) {
     return (
@@ -75,7 +78,12 @@ export default async function CatalogPrintPage({ params }: { params: { id: strin
       {/* Kapak sayfası */}
       <div className="pdf-page cover-page">
         <div>
-          <div className="cover-brand">HE-QA</div>
+          {settings.brandLogoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.brandLogoUrl} alt="Marka logosu" className="cover-logo" />
+          ) : (
+            <div className="cover-brand">HE-QA</div>
+          )}
           <div className="cover-brand-sub">Simple. Modern. You.</div>
 
           <div className="cover-title">{catalog.coverTitle || catalog.name}</div>

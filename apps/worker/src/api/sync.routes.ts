@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../db/prisma';
-import { runFullSync, syncCategories, syncCategoryProducts } from '../services/sync.service';
+import { runFullSync, syncCategories, syncCategoryProducts, syncSalesPerformance } from '../services/sync.service';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils/async-handler';
 
@@ -48,6 +48,22 @@ syncRouter.post(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`[sync/category] ${message}`);
+      res.status(502).json({ error: message });
+    }
+  })
+);
+
+// Satış performansı — ayrı buton ile tetiklenir (runFullSync'ten bağımsız, çünkü tüm
+// sipariş geçmişini tarıyor, ürün senkronundan daha yavaş olabilir).
+syncRouter.post(
+  '/sales-performance',
+  asyncHandler(async (_req: Request, res: Response) => {
+    try {
+      const result = await syncSalesPerformance();
+      res.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[sync/sales-performance] ${message}`);
       res.status(502).json({ error: message });
     }
   })

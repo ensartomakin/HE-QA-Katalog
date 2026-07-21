@@ -49,3 +49,28 @@ export async function login(email: string, password: string): Promise<{ token: s
 export function verifySessionToken(token: string): SessionPayload {
   return jwt.verify(token, getJwtSecret()) as SessionPayload;
 }
+
+export async function listAdmins() {
+  return prisma.adminUser.findMany({
+    select: { id: true, email: true, name: true, createdAt: true },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+/** Tek rol yeterli (netleşti) — Kullanıcı Yönetimi ekranından ikinci/üçüncü admin eklemek için,
+ *  bootstrapFirstAdmin'in aksine admin sayısı kısıtı yok. */
+export async function createAdmin(email: string, name: string, password: string) {
+  const existing = await prisma.adminUser.findUnique({ where: { email } });
+  if (existing) throw new Error('Bu e-posta adresiyle zaten bir kullanıcı var.');
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.adminUser.create({ data: { email, name, passwordHash } });
+  return { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt };
+}
+
+/** Sistem admin'siz kalamaz — son kullanıcı silinemez. */
+export async function deleteAdmin(id: string): Promise<void> {
+  const count = await prisma.adminUser.count();
+  if (count <= 1) throw new Error('Son yönetici hesabı silinemez.');
+  await prisma.adminUser.delete({ where: { id } });
+}
