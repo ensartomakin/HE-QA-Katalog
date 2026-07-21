@@ -1,5 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // "native" yerel geliştirme (Windows) için; debian-* hedefleri Railway'deki
+  // Docker imajı için — build ile runtime arasında OpenSSL sürüm uyuşmazlığı
+  // yaşanmaması adına ikisi de dahil ediliyor (bkz. Prisma Docker deploy rehberi).
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {
