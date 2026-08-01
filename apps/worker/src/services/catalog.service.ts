@@ -6,6 +6,7 @@ export interface CreateCatalogInput {
   coverTitle?: string;
   coverSubtitle?: string;
   currency: 'TRY' | 'USD' | 'EUR';
+  templateId: string;
   productIds: string[];
   createdBy: string;
 }
@@ -22,6 +23,7 @@ export async function createCatalog(input: CreateCatalogInput) {
       currency: input.currency,
       coverTitle: input.coverTitle,
       coverSubtitle: input.coverSubtitle,
+      templateId: input.templateId,
       createdBy: input.createdBy,
       status: 'DRAFT',
       items: {

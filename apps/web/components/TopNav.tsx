@@ -7,6 +7,7 @@ const links = [
   { href: '/', label: 'Dashboard' },
   { href: '/products', label: 'Ürün Seçim Paneli' },
   { href: '/catalogs', label: 'Katalog Geçmişi' },
+  { href: '/templates', label: 'Şablonlar' },
   { href: '/sync', label: 'Senkronizasyon' },
   { href: '/settings', label: 'Ayarlar' },
   { href: '/users', label: 'Kullanıcılar' },

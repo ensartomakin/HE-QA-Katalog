@@ -113,6 +113,7 @@ model Catalog {
   currency      Currency
   coverTitle    String?
   coverSubtitle String?
+  templateId    String        @default("placeholder-klasik")
   language      Language      @default(TR)
   status        CatalogStatus @default(DRAFT)
   pdfUrl        String?

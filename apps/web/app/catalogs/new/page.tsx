@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { CATALOG_TEMPLATES, DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
 import { TopNav } from '@/components/TopNav';
 import { useCatalogSelection } from '@/lib/catalog-selection.store';
 import type { CatalogCurrency, Product } from '@/lib/types';
@@ -21,6 +22,7 @@ export default function NewCatalogPage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [currency, setCurrency] = useState<CatalogCurrency>('TRY');
+  const [templateId, setTemplateId] = useState<string>(DEFAULT_CATALOG_TEMPLATE_ID);
 
   const { data } = useQuery({
     queryKey: ['products', 'byIds', orderedIds.join(',')],
@@ -69,6 +71,7 @@ export default function NewCatalogPage() {
           coverTitle: String(form.get('coverTitle') ?? '') || undefined,
           coverSubtitle: String(form.get('coverSubtitle') ?? '') || undefined,
           currency: String(form.get('currency') ?? 'TRY') as CatalogCurrency,
+          templateId,
           productIds: orderedIds,
           createdBy: meData?.user.email ?? 'bilinmiyor',
         }),
@@ -121,6 +124,45 @@ export default function NewCatalogPage() {
                 {currency} için kur tanımlı değil. Önce Ayarlar sayfasından kur girin.
               </p>
             )}
+
+            <div className="flex flex-col gap-[9px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[14px]">Şablon</span>
+                <a href="/templates" target="_blank" rel="noreferrer" className="text-[12px] hover:underline text-[var(--color-bark)]">
+                  → Tüm şablonları incele
+                </a>
+              </div>
+              <div className="flex flex-col gap-[9px]">
+                {CATALOG_TEMPLATES.map((t) => (
+                  <label
+                    key={t.id}
+                    className={`flex items-start gap-[11px] border p-[11px] cursor-pointer ${
+                      templateId === t.id ? 'border-[var(--color-ink-black)]' : 'border-[var(--color-pebble)]'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="templateId"
+                      value={t.id}
+                      checked={templateId === t.id}
+                      onChange={() => setTemplateId(t.id)}
+                      className="mt-[3px]"
+                    />
+                    <div className="flex flex-col gap-[2px]">
+                      <span className="text-[14px] flex items-center gap-[7px]">
+                        {t.name}
+                        {t.isPlaceholder && (
+                          <span className="text-[10px] uppercase tracking-wide text-[var(--color-bark)] border border-[var(--color-pebble)] rounded-full px-[7px] py-[1px]">
+                            Geçici
+                          </span>
+                        )}
+                      </span>
+                      <span className="text-[12px] text-[var(--color-bark)]">{t.description}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
             {error && <p className="text-[14px] text-red-700">{error}</p>}
 

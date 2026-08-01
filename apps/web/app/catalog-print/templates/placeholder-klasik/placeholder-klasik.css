@@ -1,32 +1,5 @@
-/* PDF katalog şablonu — yalnızca /catalog-print altında yüklenir.
-   docs/SISTEM-TASARIMI.md §4: A4 sayfa, kompozisyon görsellerden, renk/tipografi
-   DESIGN (3).md token'larından (bkz. §0). */
-
-@page {
-  size: A4;
-  margin: 0;
-}
-
-.catalog-print {
-  font-family: var(--font-beausite);
-  color: var(--color-ink-black);
-  background: var(--color-bone-white);
-}
-
-.pdf-page {
-  width: 210mm;
-  height: 297mm;
-  position: relative;
-  overflow: hidden;
-  background: var(--color-bone-white);
-  break-after: page;
-  page-break-after: always;
-}
-
-.pdf-page:last-child {
-  break-after: auto;
-  page-break-after: auto;
-}
+/* "Geçici Düzen" şablonu — docs/SISTEM-TASARIMI.md §4: A4 sayfa, kompozisyon
+   görsellerden, renk/tipografi DESIGN (3).md token'larından (bkz. §0). */
 
 /* --- Kapak sayfası --- */
 .cover-page {
