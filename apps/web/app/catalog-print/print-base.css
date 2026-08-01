@@ -1,0 +1,29 @@
+/* PDF katalog altyapısı — /catalog-print altında tüm şablonlar için ortak sayfa
+   mekaniği. Şablona özgü görsel stiller apps/web/app/catalog-print/templates/<id>/
+   altında kendi CSS dosyalarında tanımlanır. */
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+.catalog-print {
+  font-family: var(--font-beausite);
+  color: var(--color-ink-black);
+  background: var(--color-bone-white);
+}
+
+.pdf-page {
+  width: 210mm;
+  height: 297mm;
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bone-white);
+  break-after: page;
+  page-break-after: always;
+}
+
+.pdf-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}

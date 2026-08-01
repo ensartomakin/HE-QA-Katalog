@@ -58,6 +58,7 @@ export interface CatalogDetail {
   currency: CatalogCurrency;
   coverTitle: string | null;
   coverSubtitle: string | null;
+  templateId: string;
   status: CatalogStatus;
   pdfUrl: string | null;
   generatedAt: string | null;

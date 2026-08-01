@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import { CATALOG_TEMPLATE_IDS, DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
 import { createCatalog, getCatalogDetail, listCatalogs } from '../services/catalog.service';
 import { generateCatalogPdf, getCatalogPdfPath } from '../services/pdf.service';
 import { logger } from '../utils/logger';
@@ -13,6 +14,7 @@ const createSchema = z.object({
   coverTitle: z.string().optional(),
   coverSubtitle: z.string().optional(),
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
+  templateId: z.enum(CATALOG_TEMPLATE_IDS).default(DEFAULT_CATALOG_TEMPLATE_ID),
   productIds: z.array(z.string()).min(1),
   createdBy: z.string().min(1),
 });
