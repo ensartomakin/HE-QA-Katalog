@@ -31,7 +31,10 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+// Varsayılan gövde boyutu sınırı (100kb) kapak görseli/marka logosu gibi base64 data URL
+// payload'ları için yetersiz — bunlar birkaç MB'a çıkabiliyor (bkz. catalogs.routes.ts
+// updateCoverImageSchema, settings.routes.ts brandLogoUrl).
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
