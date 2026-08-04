@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
 import type { CatalogDetail } from '@/lib/types';
+import ZarifTemplate from '@/app/catalog-print/templates/zarif/Template';
 import PlaceholderKlasikTemplate from '@/app/catalog-print/templates/placeholder-klasik/Template';
 
 export interface CatalogPrintTemplateProps {
@@ -13,6 +14,7 @@ export interface CatalogPrintTemplateProps {
  *  2) packages/db/src/catalog-templates.ts içine kaydını ekle
  *  3) buraya bir satır ekle. */
 export const CATALOG_PRINT_TEMPLATES: Record<string, ComponentType<CatalogPrintTemplateProps>> = {
+  zarif: ZarifTemplate,
   'placeholder-klasik': PlaceholderKlasikTemplate,
 };
 

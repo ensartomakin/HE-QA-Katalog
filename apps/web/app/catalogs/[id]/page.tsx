@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TopNav } from '@/components/TopNav';
 import type { CatalogDetail } from '@/lib/types';
@@ -20,6 +21,8 @@ const STATUS_LABEL: Record<CatalogDetail['status'], string> = {
 
 export default function CatalogDetailPage({ params }: { params: { id: string } }) {
   const queryClient = useQueryClient();
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverMessage, setCoverMessage] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['catalog', params.id],
@@ -32,7 +35,30 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['catalog', params.id] }),
   });
 
+  const saveCoverImage = useMutation({
+    mutationFn: (coverImageUrl: string | null) =>
+      fetchJson(`/api/catalogs/${params.id}`, { method: 'PATCH', body: JSON.stringify({ coverImageUrl }) }),
+    onSuccess: () => {
+      setCoverMessage('Kapak görseli kaydedildi.');
+      queryClient.invalidateQueries({ queryKey: ['catalog', params.id] });
+    },
+    onError: (err) => setCoverMessage(err instanceof Error ? err.message : 'Kapak görseli kaydedilemedi'),
+  });
+
   const catalog = data?.catalog;
+
+  useEffect(() => {
+    if (catalog?.coverImageUrl) setCoverPreview(catalog.coverImageUrl);
+  }, [catalog?.coverImageUrl]);
+
+  function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverMessage(null);
+    const reader = new FileReader();
+    reader.onload = () => setCoverPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  }
 
   return (
     <main className="max-w-[1200px] mx-auto pb-[80px]">
@@ -47,6 +73,42 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
               <p className="text-[14px] text-[var(--color-bark)]">
                 {catalog.items.length} ürün · {catalog.currency} · {STATUS_LABEL[catalog.status]}
               </p>
+            </div>
+
+            <div className="flex flex-col gap-[9px]">
+              <h2 className="text-[21px]">Kapak Görseli</h2>
+              <p className="text-[14px] text-[var(--color-bark)]">Kataloğun ilk (kapak) sayfasında kullanılır.</p>
+              {coverPreview && (
+                <div className="w-[200px] h-[280px] bg-[var(--color-linen)] flex items-center justify-center overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={coverPreview} alt="Kapak görseli önizleme" className="max-w-full max-h-full object-contain" />
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={handleCoverChange} className="text-[14px]" />
+              <div className="flex gap-[11px]">
+                <button
+                  type="button"
+                  className="btn-ghost self-start"
+                  disabled={!coverPreview || saveCoverImage.isPending}
+                  onClick={() => coverPreview && saveCoverImage.mutate(coverPreview)}
+                >
+                  {saveCoverImage.isPending ? 'Kaydediliyor…' : 'Kapak Görselini Kaydet'}
+                </button>
+                {catalog.coverImageUrl && (
+                  <button
+                    type="button"
+                    className="btn-ghost self-start"
+                    disabled={saveCoverImage.isPending}
+                    onClick={() => {
+                      setCoverPreview(null);
+                      saveCoverImage.mutate(null);
+                    }}
+                  >
+                    Kaldır
+                  </button>
+                )}
+              </div>
+              {coverMessage && <p className="text-[14px] text-[var(--color-bark)]">{coverMessage}</p>}
             </div>
 
             <div className="flex gap-[11px]">

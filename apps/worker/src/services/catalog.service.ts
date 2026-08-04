@@ -68,16 +68,42 @@ export async function getCatalogDetail(id: string) {
   const discountPct = settings ? Number(settings.wholesaleDiscountPct) : 40;
   const ratePerTry = await getExchangeRate(catalog.currency);
 
+  // Renk varyantı fotoğrafları: tsoft'ta her renk ayrı bir üründür, birbirine tsoftRelatedIds
+  // ile bağlıdır (bkz. sync.service.ts syncColorSwatches). Kardeş ürünlerin birincil
+  // görselini tek seferde toplu sorguyla çekip her katalog kalemine eşliyoruz.
+  const relatedTsoftIds = new Set<string>();
+  for (const item of catalog.items) {
+    relatedTsoftIds.add(item.product.tsoftProductId);
+    for (const rid of item.product.tsoftRelatedIds) relatedTsoftIds.add(rid);
+  }
+  const variantProducts = await prisma.product.findMany({
+    where: { tsoftProductId: { in: Array.from(relatedTsoftIds) } },
+    select: { tsoftProductId: true, colorLabel: true, images: { where: { isPrimary: true }, take: 1 } },
+  });
+  const variantByTsoftId = new Map(variantProducts.map((p) => [p.tsoftProductId, p]));
+
   const items = catalog.items.map((item) => {
     const { wholesaleTry, displayPrice } = calculatePrice({
       sourcePriceTry: Number(item.product.sourcePriceTry),
       discountPct,
       ratePerTry,
     });
-    return { ...item, priceTry: wholesaleTry, priceDisplay: displayPrice };
+
+    const variantTsoftIds = [item.product.tsoftProductId, ...item.product.tsoftRelatedIds];
+    const colorVariants = variantTsoftIds
+      .map((tid) => variantByTsoftId.get(tid))
+      .filter((p): p is NonNullable<typeof p> => Boolean(p?.colorLabel))
+      .map((p) => ({ colorLabel: p.colorLabel as string, imageUrl: p.images[0]?.url ?? null }))
+      .filter((c, i, arr) => arr.findIndex((x) => x.colorLabel === c.colorLabel) === i);
+
+    return { ...item, priceTry: wholesaleTry, priceDisplay: displayPrice, colorVariants };
   });
 
   return { ...catalog, items, discountPct };
+}
+
+export async function updateCatalogCoverImage(id: string, coverImageUrl: string | null) {
+  return prisma.catalog.update({ where: { id }, data: { coverImageUrl } });
 }
 
 export async function markCatalogGenerating(id: string) {

@@ -59,8 +59,12 @@ export default function PlaceholderKlasikTemplate({ catalog, settings }: Catalog
   return (
     <div className="catalog-print">
       {/* Kapak sayfası */}
-      <div className="pdf-page cover-page">
-        <div>
+      <div className={`pdf-page cover-page${catalog.coverImageUrl ? ' has-cover-image' : ''}`}>
+        {catalog.coverImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={catalog.coverImageUrl} alt="" className="cover-image" />
+        )}
+        <div className="cover-content">
           {settings.brandLogoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={settings.brandLogoUrl} alt="Marka logosu" className="cover-logo" />

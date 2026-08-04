@@ -2,7 +2,7 @@ import fs from 'fs';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { CATALOG_TEMPLATE_IDS, DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
-import { createCatalog, getCatalogDetail, listCatalogs } from '../services/catalog.service';
+import { createCatalog, getCatalogDetail, listCatalogs, updateCatalogCoverImage } from '../services/catalog.service';
 import { generateCatalogPdf, getCatalogPdfPath } from '../services/pdf.service';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils/async-handler';
@@ -55,6 +55,32 @@ catalogsRouter.get(
       return;
     }
     res.json({ catalog });
+  })
+);
+
+const updateCoverImageSchema = z.object({
+  // Object storage kurulu değil (bkz. apps/worker/src/api/settings.routes.ts brandLogoUrl ile
+  // aynı desen) — kapak görseli tarayıcıda base64 data URL'e çevrilip doğrudan saklanıyor.
+  // null: kapak görselini kaldır.
+  coverImageUrl: z.string().min(1).max(4_000_000).nullable(),
+});
+
+catalogsRouter.patch(
+  '/:id',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = updateCoverImageSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const catalog = await updateCatalogCoverImage(req.params.id, parsed.data.coverImageUrl);
+      res.json({ catalog });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[catalogs/update] ${message}`);
+      res.status(400).json({ error: message });
+    }
   })
 );
 

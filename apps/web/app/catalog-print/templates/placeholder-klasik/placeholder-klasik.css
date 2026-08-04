@@ -9,6 +9,49 @@
   padding: 20mm 18mm;
 }
 
+.cover-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Görsel üzerindeki metnin okunabilirliği için alttan üste karartma */
+.cover-page.has-cover-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
+  z-index: 1;
+}
+
+.cover-page.has-cover-image {
+  color: #fff;
+}
+
+.cover-page.has-cover-image .cover-content,
+.cover-page.has-cover-image .cover-meta {
+  position: relative;
+  z-index: 2;
+}
+
+.cover-page.has-cover-image .cover-brand-sub,
+.cover-page.has-cover-image .cover-subtitle,
+.cover-page.has-cover-image .cover-meta,
+.cover-page.has-cover-image .trust-item {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cover-page.has-cover-image .trust-item strong {
+  color: #fff;
+}
+
+.cover-page.has-cover-image .cover-meta {
+  border-top-color: rgba(255, 255, 255, 0.3);
+}
+
 .cover-brand {
   font-size: 16px;
   letter-spacing: -0.022em;
