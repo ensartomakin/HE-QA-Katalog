@@ -43,6 +43,11 @@ export interface Product {
 export type CatalogCurrency = 'TRY' | 'USD' | 'EUR';
 export type CatalogStatus = 'DRAFT' | 'GENERATING' | 'READY' | 'FAILED';
 
+export interface CatalogItemColorVariant {
+  colorLabel: string;
+  imageUrl: string | null;
+}
+
 export interface CatalogItem {
   id: string;
   productId: string;
@@ -50,6 +55,7 @@ export interface CatalogItem {
   product: Product;
   priceTry: number;
   priceDisplay: number;
+  colorVariants: CatalogItemColorVariant[];
 }
 
 export interface CatalogDetail {
@@ -58,6 +64,7 @@ export interface CatalogDetail {
   currency: CatalogCurrency;
   coverTitle: string | null;
   coverSubtitle: string | null;
+  coverImageUrl: string | null;
   templateId: string;
   status: CatalogStatus;
   pdfUrl: string | null;

@@ -8,6 +8,11 @@ export interface CatalogTemplateMeta {
 
 export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
   {
+    id: 'zarif',
+    name: 'Zarif',
+    description: 'Kapak fotoğrafı + sayfa başına 4 ürünlük vitrin: ana görsel, renk varyantı küçük görselleri, toptan fiyat, beden ve kumaş bilgisi.',
+  },
+  {
     id: 'placeholder-klasik',
     name: 'Geçici Düzen',
     description: 'İlk özel şablon tasarımı eklenene kadar kullanılan geçici sayfa düzeni: kapak sayfası ve 3x2 ürün ızgarası.',
