@@ -61,6 +61,21 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         </div>
       </div>
 
+      <div className="zarif-row zarif-row-colors">
+        <div className="zarif-colors-block">
+          <div className="zarif-label">Renkler</div>
+          <div className="zarif-color-dots">
+            {item.product.colors.length > 0 ? (
+              item.product.colors.map((c) => (
+                <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#e8e4d8' }} title={c.name} />
+              ))
+            ) : (
+              <span className="zarif-empty">—</span>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className="zarif-row zarif-row-meta">
         <div className="zarif-size-block">
           <div className="zarif-label">Beden</div>
@@ -79,18 +94,6 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         <div className="zarif-fabric-block">
           <div className="zarif-label">Kumaş</div>
           <div className="zarif-fabric-text">{item.product.fabricInfo || '—'}</div>
-        </div>
-        <div className="zarif-colors-block">
-          <div className="zarif-label">Renkler</div>
-          <div className="zarif-color-dots">
-            {item.product.colors.length > 0 ? (
-              item.product.colors.map((c) => (
-                <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#e8e4d8' }} title={c.name} />
-              ))
-            ) : (
-              <span className="zarif-empty">—</span>
-            )}
-          </div>
         </div>
       </div>
     </div>
