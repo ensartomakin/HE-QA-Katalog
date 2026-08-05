@@ -1,6 +1,7 @@
 import './zarif.css';
 import type { CatalogDetail, CatalogItem } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
+import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
 
 const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   TRY: 'TL',
@@ -34,19 +35,22 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
 
   return (
     <div className="zarif-card">
-      <div className="zarif-hero-wrap">{heroImage && <img src={heroImage.url} alt={item.product.name} />}</div>
-
-      {thumbnails.length > 0 && (
-        <div className="zarif-thumb-row">
-          {thumbnails.map((v) => (
-            <div key={v.colorLabel} className="zarif-thumb-wrap">
-              {v.imageUrl && <img src={v.imageUrl} alt={v.colorLabel} />}
+      <div className="zarif-media-row">
+        <div className="zarif-hero-wrap">
+          {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+        </div>
+        <div className="zarif-thumb-col">
+          {[0, 1, 2].map((i) => (
+            <div key={thumbnails[i]?.colorLabel ?? i} className="zarif-thumb-wrap">
+              {thumbnails[i]?.imageUrl && (
+                <img src={upsizeTsoftImageUrl(thumbnails[i].imageUrl as string, 'O')} alt={thumbnails[i].colorLabel} />
+              )}
             </div>
           ))}
         </div>
-      )}
+      </div>
 
-      <div className="zarif-info-row">
+      <div className="zarif-row zarif-row-name-price">
         <div className="zarif-name-block">
           <div className="zarif-label">Ürün Adı</div>
           <div className="zarif-product-name">{item.product.name}</div>
@@ -57,7 +61,7 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         </div>
       </div>
 
-      <div className="zarif-info-row">
+      <div className="zarif-row zarif-row-meta">
         <div className="zarif-size-block">
           <div className="zarif-label">Beden</div>
           <div className="zarif-size-list">
@@ -68,7 +72,7 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
                 </span>
               ))
             ) : (
-              <span className="zarif-empty">Girilmedi</span>
+              <span className="zarif-empty">—</span>
             )}
           </div>
         </div>
@@ -76,18 +80,19 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
           <div className="zarif-label">Kumaş</div>
           <div className="zarif-fabric-text">{item.product.fabricInfo || '—'}</div>
         </div>
-      </div>
-
-      {item.product.colors.length > 0 && (
         <div className="zarif-colors-block">
           <div className="zarif-label">Renkler</div>
           <div className="zarif-color-dots">
-            {item.product.colors.map((c) => (
-              <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#e8e4d8' }} title={c.name} />
-            ))}
+            {item.product.colors.length > 0 ? (
+              item.product.colors.map((c) => (
+                <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#e8e4d8' }} title={c.name} />
+              ))
+            ) : (
+              <span className="zarif-empty">—</span>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -115,17 +120,19 @@ export default function ZarifTemplate({ catalog, settings }: CatalogPrintTemplat
       {/* Ürün grid sayfaları — 2x2 */}
       {pages.map((pageItems, pageIndex) => (
         <div className="pdf-page zarif-grid-page" key={pageIndex}>
-          <div className="zarif-page-brand">
-            <ZarifBrandMark brandLogoUrl={settings.brandLogoUrl} />
-          </div>
+          <div className="zarif-page-frame">
+            <div className="zarif-page-brand">
+              <ZarifBrandMark brandLogoUrl={settings.brandLogoUrl} />
+            </div>
 
-          <div className="zarif-product-grid">
-            {pageItems.map((item) => (
-              <ZarifProductCard key={item.id} item={item} currency={catalog.currency} />
-            ))}
-          </div>
+            <div className="zarif-product-grid">
+              {pageItems.map((item) => (
+                <ZarifProductCard key={item.id} item={item} currency={catalog.currency} />
+              ))}
+            </div>
 
-          <div className="zarif-page-number">{String(pageIndex + 2).padStart(2, '0')}</div>
+            <div className="zarif-page-number">{String(pageIndex + 2).padStart(2, '0')}</div>
+          </div>
         </div>
       ))}
     </div>

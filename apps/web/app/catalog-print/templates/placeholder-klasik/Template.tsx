@@ -1,6 +1,7 @@
 import './placeholder-klasik.css';
 import type { CatalogDetail, CatalogItem } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
+import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
 
 const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   TRY: 'TL',
@@ -23,7 +24,7 @@ function ProductCardPrint({ item, currency }: { item: CatalogItem; currency: Cat
   return (
     <div className="product-card">
       <div className="product-image-wrap">
-        {primaryImage && <img src={primaryImage.url} alt={item.product.name} />}
+        {primaryImage && <img src={upsizeTsoftImageUrl(primaryImage.url, 'B')} alt={item.product.name} />}
       </div>
       <div className="product-name">{item.product.name}</div>
       <div className="product-code">{item.product.code}</div>

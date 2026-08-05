@@ -77,11 +77,23 @@
   opacity: 0.85;
 }
 
-/* --- Ürün grid sayfası --- */
+/* --- Ürün grid sayfası ---
+   Tüm ölçüler sabit (mm/satır-kırpma ile) — ürün adı, kumaş açıklaması gibi değişken
+   uzunluktaki metinler kart yüksekliğini/hizasını asla etkilemez; her kart aynı iskelete
+   sahiptir (bkz. konuşma: "alanların hepsi sabit olsun, tasarımda kayma olmasın"). */
 .zarif-grid-page {
   background: var(--zarif-cream);
   color: var(--zarif-ink);
-  padding: 14mm 14mm 10mm;
+  padding: 8mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.zarif-page-frame {
+  flex: 1;
+  min-height: 0;
+  border: 0.6pt solid var(--zarif-gold);
+  padding: 8mm;
   display: flex;
   flex-direction: column;
 }
@@ -90,7 +102,8 @@
   text-align: center;
   font-size: 18px;
   letter-spacing: 0.35em;
-  margin-bottom: 8mm;
+  height: 12mm;
+  flex-shrink: 0;
 }
 
 .zarif-product-grid {
@@ -100,55 +113,93 @@
   gap: 6mm;
   flex: 1;
   min-height: 0;
+  margin-top: 4mm;
+}
+
+.zarif-page-number {
+  text-align: center;
+  margin-top: 4mm;
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  flex-shrink: 0;
 }
 
 .zarif-card {
   border: 0.6pt solid var(--zarif-gold);
-  padding: 4mm;
+  padding: 3mm;
   display: flex;
   flex-direction: column;
-  gap: 2.5mm;
+  gap: 2mm;
   min-height: 0;
+  overflow: hidden;
+}
+
+/* Ana görsel + 3 renk varyantı küçük görseli — sabit yükseklik, kutu sabit kalır. object-fit
+   ile bu kutuyu doldurur; kaynak görselin oranı ne olursa olsun düzen sabit kalır. */
+.zarif-media-row {
+  display: flex;
+  gap: 2mm;
+  height: 82mm;
+  flex-shrink: 0;
 }
 
 .zarif-hero-wrap {
-  width: 100%;
-  aspect-ratio: 4 / 5;
+  flex: 2.2;
+  height: 100%;
   overflow: hidden;
   background: var(--zarif-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .zarif-hero-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
-.zarif-thumb-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.zarif-thumb-col {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 1.5mm;
 }
 
 .zarif-thumb-wrap {
-  aspect-ratio: 1 / 1.15;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
   background: var(--zarif-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .zarif-thumb-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
-.zarif-info-row {
+.zarif-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 3mm;
+  flex-shrink: 0;
+}
+
+.zarif-row-name-price {
+  height: 10.5mm;
+}
+
+.zarif-row-meta {
+  height: 13.5mm;
+  gap: 2mm;
 }
 
 .zarif-label {
@@ -170,6 +221,15 @@
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.25;
+  height: 2.5em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.zarif-price-block {
+  flex-shrink: 0;
 }
 
 .zarif-price-pill {
@@ -179,18 +239,31 @@
   background: var(--zarif-panel);
   padding: 1.3mm 2.6mm;
   white-space: nowrap;
+  display: inline-block;
 }
 
-.zarif-size-block,
-.zarif-fabric-block {
+.zarif-size-block {
   flex: 1;
   min-width: 0;
+}
+
+.zarif-fabric-block {
+  flex: 1.3;
+  min-width: 0;
+}
+
+.zarif-colors-block {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .zarif-size-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1mm;
+  height: 2.4em;
+  overflow: hidden;
 }
 
 .zarif-size-box {
@@ -198,12 +271,18 @@
   border: 0.4pt solid var(--zarif-gold);
   padding: 0.8mm 1.8mm;
   font-family: var(--font-beausite);
+  height: fit-content;
 }
 
 .zarif-fabric-text {
   font-size: 7px;
   line-height: 1.35;
   font-family: var(--font-beausite);
+  height: 2.7em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .zarif-empty {
@@ -213,13 +292,11 @@
   font-family: var(--font-beausite);
 }
 
-.zarif-colors-block {
-  margin-top: -0.5mm;
-}
-
 .zarif-color-dots {
   display: flex;
   gap: 1.5mm;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .zarif-color-dot {
@@ -227,11 +304,5 @@
   height: 3mm;
   border-radius: 50%;
   border: 0.3mm solid var(--zarif-gold);
-}
-
-.zarif-page-number {
-  text-align: center;
-  margin-top: 6mm;
-  font-size: 10px;
-  letter-spacing: 0.15em;
+  flex-shrink: 0;
 }
