@@ -116,7 +116,13 @@ async function upsertProduct(p: TSoftProduct, internalCategoryId: string): Promi
     },
   });
 
-  await syncProductSizes(product.id, p.variants);
+  // Bedenler: Faz 0 keşfi HE-QA'nın tsoft API kullanıcısının beden/alt varyant
+  // modüllerine erişim izni OLMADIĞINI ortaya çıkardı (product/get hiçbir parametre
+  // kombinasyonuyla beden kırılımı döndürmüyor; product/getSubProducts, getVariants,
+  // getDetail, getStock uçları "erişim yetkiniz yok" hatası veriyor — bkz.
+  // types/tsoft.ts). Bu yüzden burada UYDURMA bir "Tek Beden" kaydı YAZILMIYOR —
+  // tsoft panelinden API kullanıcısına ilgili modül izni verilene kadar bedenler
+  // Ürün Detay ekranından manuel girilecek (açık soru, kullanıcıya iletildi).
 
   if (p.imageUrl) {
     await prisma.productImage.upsert({
@@ -127,19 +133,6 @@ async function upsertProduct(p: TSoftProduct, internalCategoryId: string): Promi
   }
 
   return product.tsoftProductId;
-}
-
-/** Alt ürünlerden (bkz. tsoft-client.ts mapProduct — SubProducts/Property2) okunan beden
- *  etiketlerini `ProductSize`'a yazar. Gerçek alt ürün yoksa mapProduct'ın yer tutucu olarak
- *  ürettiği "Tek Beden" hariç tutulur — bu durumda mevcut kayıtlara dokunulmaz. */
-async function syncProductSizes(productId: string, variants: TSoftProduct['variants']): Promise<void> {
-  const labels = Array.from(new Set(variants.map((v) => v.sizeName).filter((s) => s && s !== 'Tek Beden')));
-  if (labels.length === 0) return;
-
-  await prisma.productSize.deleteMany({ where: { productId } });
-  await prisma.productSize.createMany({
-    data: labels.map((label, i) => ({ productId, label, sortOrder: i })),
-  });
 }
 
 /** Faz 0 bulgusu: tsoft'ta renk seçenekleri ayrı ürünler halinde gelir (RelatedProductsIds1

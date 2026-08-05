@@ -33,15 +33,13 @@ export interface TSoftProduct {
   // • Kardeş renk varyantları → RelatedProductsIds1 alanında virgülle ayrılmış ProductId
   //   listesi olarak geliyor (ModelId bazı ürünlerde "0" kalabildiği için güvenilir değil,
   //   RelatedProductsIds1 daha tutarlı).
-  // • Beden (size) kırılımı → ÇÖZÜLDÜ (2026-08-05, bkz. docs/SISTEM-TASARIMI.md §7.11).
-  //   `product/get`'e `FetchSubProducts=true` eklenmeden istek "başarılı" dönüyor ama
-  //   `SubProducts` alanı hiç gelmiyordu (yetki sorunu değildi). Bu parametreyle alt ürün
-  //   dizisi geliyor: her satırda `Property2` = Nitelik2/Beden değeri (örn. "36"), `Property1`
-  //   = Nitelik1/Renk (genelde boş — renk zaten ayrı ProductCode'lu ayrı ürün), `Stock` =
-  //   GERÇEK bedene göre stok adedi (üst seviye `Stock` bunların toplamı). `SellingPrice`
-  //   alt üründe genelde "0" — fiyat ana ürün seviyesinde tutuluyor, `mapProduct()` bu
-  //   durumda ana ürün fiyatına düşüyor. `product/getSubProducts` vb. ayrı uçlar hâlâ
-  //   "erişim yetkiniz yok" hatası veriyor ama artık gerekli değil.
+  // • Beden (size) kırılımı → ⚠️ BU API KULLANICISIYLA ERİŞİLEMİYOR. `product/get` her
+  //   parametre kombinasyonunda (FetchDetails, StockFields, SubProducts=true, ProductCode
+  //   filtresi) tek bir düz obje döndürüyor, alt varyant dizisi yok. `product/getDetail`,
+  //   `product/getSubProducts`, `product/getVariants`, `product/getStock` uçları
+  //   "Bu modüle erişim yetkiniz bulunmamaktadır!" hatası veriyor. `Stock` alanı TÜM
+  //   bedenlerin toplamı (bedene göre kırılım yok). Bu bir açık soru olarak kullanıcıya
+  //   iletildi — tsoft panelinden API kullanıcısına ilgili modül izni verilmesi gerekiyor.
   description?: string;
   fabricInfo?: string;
   colorLabel?: string;
