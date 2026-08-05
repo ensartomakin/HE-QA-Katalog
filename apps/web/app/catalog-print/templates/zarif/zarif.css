@@ -139,7 +139,7 @@
 .zarif-media-row {
   display: flex;
   gap: 2mm;
-  height: 82mm;
+  height: 74mm;
   flex-shrink: 0;
 }
 
@@ -195,6 +195,10 @@
 
 .zarif-row-name-price {
   height: 10.5mm;
+}
+
+.zarif-row-colors {
+  height: 6mm;
 }
 
 .zarif-row-meta {
