@@ -197,6 +197,7 @@ export class TSoftClient implements TSoftClientApi {
       limit: String(limit),
       FetchDetails: 'true',
       StockFields: 'true',
+      FetchSubProducts: 'true',
     });
     return (data.data ?? []).slice(0, limit);
   }
@@ -217,6 +218,7 @@ export class TSoftClient implements TSoftClientApi {
         limit: String(limit),
         FetchDetails: 'true',
         StockFields: 'true',
+        FetchSubProducts: 'true',
       });
       const batch = data.data ?? [];
       results.push(...batch.map((p) => this.mapProduct(p)));
@@ -236,6 +238,7 @@ export class TSoftClient implements TSoftClientApi {
         ProductCode: batch.join('|'),
         FetchDetails: 'true',
         StockFields: 'true',
+        FetchSubProducts: 'true',
         limit: String(BATCH_SIZE),
       });
       results.push(...(data.data ?? []).map((p) => this.mapProduct(p)));
@@ -269,17 +272,26 @@ export class TSoftClient implements TSoftClientApi {
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
-    const rawVariants = (p.SubProducts ?? p.Variants ?? p.Details ?? []) as Record<string, unknown>[];
+    const parentPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
+
+    // Faz 0.5 keşfi (2026-08-05): beden kırılımı `product/get`'e `FetchSubProducts=true`
+    // gönderildiğinde `SubProducts` alanında geliyor — bu parametre olmadan istek "başarılı"
+    // dönüyor ama alan hiç yer almıyor (Faz 0'da bu yüzden gözden kaçmıştı). Alt ürün
+    // satırlarında beden değeri `Property2`'de (VariantFeature2Title = "Beden"), renk ise
+    // `Property1`'de geliyor — ama renk zaten ayrı ProductCode'lu ayrı bir üründür, bu yüzden
+    // burada kullanılmıyor. Alt ürünlerin kendi `SellingPrice`'ı çoğunlukla "0" (fiyat ana
+    // ürün seviyesinde tutuluyor) — bu yüzden 0 ise ana ürün fiyatına düşülüyor.
+    const rawVariants = (p.SubProducts ?? p.Variants ?? []) as Record<string, unknown>[];
     const variants =
       Array.isArray(rawVariants) && rawVariants.length > 0
         ? rawVariants.map((v) => ({
-            variantId: String(v.ProductId ?? v.VariantId ?? v.variantId ?? ''),
-            sizeName: String(v.SizeName ?? v.VariantName ?? v.sizeName ?? ''),
+            variantId: String(v.SubProductId ?? v.ProductId ?? v.VariantId ?? v.variantId ?? ''),
+            sizeName: String(v.Property2 || v.Property1 || v.SizeName || v.VariantName || v.sizeName || ''),
             barcode: String(v.Barcode ?? v.barcode ?? ''),
             stock: Number(v.Stock ?? v.stock ?? 0),
-            price: Number(v.SellingPrice ?? v.price ?? 0),
+            price: Number(v.SellingPrice ?? v.price ?? 0) || parentPrice,
           }))
-        : [{ variantId: String(p.ProductId ?? ''), sizeName: 'Tek Beden', barcode: String(p.Barcode ?? ''), stock, price: Number(p.SellingPrice ?? 0) }];
+        : [{ variantId: String(p.ProductId ?? ''), sizeName: 'Tek Beden', barcode: String(p.Barcode ?? ''), stock, price: parentPrice }];
 
     // Faz 0 keşfi: T-Soft "ImageUrl" alanı sadece dosya adı döndürüyor (tam URL değil).
     // Gerçek erişilebilir adres mağaza domaininin köküne dosya adının eklenmesiyle oluşuyor
@@ -289,11 +301,10 @@ export class TSoftClient implements TSoftClientApi {
       ? `${this.creds.apiUrl}/${rawImageFilename}`
       : rawImageFilename;
 
-    const listPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
     const discountedPrice = Number(p.DiscountedPrice ?? p.discountedPrice ?? 0);
     const discountRate =
       Number(p.DiscountRate ?? p.discountRate ?? 0) ||
-      (listPrice > 0 && discountedPrice > 0 && discountedPrice < listPrice ? Math.round(((listPrice - discountedPrice) / listPrice) * 100) : 0);
+      (parentPrice > 0 && discountedPrice > 0 && discountedPrice < parentPrice ? Math.round(((parentPrice - discountedPrice) / parentPrice) * 100) : 0);
 
     const seoLink = String(p.SeoLink ?? p.seoLink ?? p.SEOLink ?? p.SEOUrl ?? p.SeoUrl ?? p.seoUrl ?? p.Url ?? p.url ?? p.Slug ?? p.slug ?? '');
 
