@@ -31,6 +31,7 @@ export interface Product {
   category: Category;
   description: string | null;
   fabricInfo: string | null;
+  colorLabel: string | null;
   sourcePriceTry: string; // Prisma Decimal → JSON'da string olarak gelir
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'UNKNOWN';
   manualSortWeight: number | null;

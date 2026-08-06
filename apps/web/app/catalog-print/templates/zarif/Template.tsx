@@ -33,9 +33,12 @@ function ZarifBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
 
 function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: CatalogDetail['currency'] }) {
   const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Yalnızca gerçek görseli olan renk varyantları — eksik fotoğraflı varyantlar için boş
-  // krem kutu bırakmak yerine grid, mevcut fotoğraf sayısına göre daralır.
-  const thumbnails = item.colorVariants.filter((c) => c.imageUrl).slice(0, 3);
+  // Yalnızca gerçek görseli olan, DİĞER renk varyantları — büyük görselde zaten gösterilen
+  // ürünün kendi rengi burada tekrar edilmez. Eksik fotoğraflı varyantlar için boş krem
+  // kutu bırakmak yerine grid, mevcut fotoğraf sayısına göre daralır.
+  const thumbnails = item.colorVariants
+    .filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel)
+    .slice(0, 3);
 
   return (
     <div className="zarif-card">
@@ -67,9 +70,17 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         <div className="zarif-colors-block">
           <div className="zarif-label">Renkler</div>
           <div className="zarif-color-dots">
-            {item.product.colors.length > 0 ? (
-              item.product.colors.map((c) => (
-                <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#e8e4d8' }} title={c.name} />
+            {item.colorVariants.length > 0 ? (
+              // Adlandırılmış renk→hex tahmini (ör. "Zeytin", "Kemik") çoğu zaman gerçek ürün
+              // rengiyle alakasız çıkıyordu — bunun yerine varsa gerçek varyant fotoğrafı küçük
+              // bir yuvarlak önizleme olarak kullanılır (fotoğraf yoksa nötr bir dolgu).
+              item.colorVariants.map((c) => (
+                <span
+                  key={c.colorLabel}
+                  className="zarif-color-dot"
+                  style={c.imageUrl ? { backgroundImage: `url(${c.imageUrl})` } : undefined}
+                  title={c.colorLabel}
+                />
               ))
             ) : (
               <span className="zarif-empty">—</span>

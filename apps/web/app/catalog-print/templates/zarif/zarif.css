@@ -125,7 +125,6 @@
 }
 
 .zarif-card {
-  border: 0.6pt solid var(--zarif-gold);
   padding: 3mm;
   display: flex;
   flex-direction: column;
@@ -195,6 +194,9 @@
 
 .zarif-row-name-price {
   height: 10.5mm;
+  /* Üstteki .zarif-media-row ile aynı oran (2.2:1) ve gap — başlık büyük görselin,
+     fiyat küçük görsel sütununun genişliğiyle hizalı ortalanır. */
+  gap: 2mm;
 }
 
 .zarif-row-colors {
@@ -216,8 +218,9 @@
 }
 
 .zarif-name-block {
-  flex: 1;
+  flex: 2.2;
   min-width: 0;
+  text-align: center;
 }
 
 .zarif-product-name {
@@ -233,7 +236,9 @@
 }
 
 .zarif-price-block {
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
 }
 
 .zarif-price-pill {
@@ -309,4 +314,7 @@
   border-radius: 50%;
   border: 0.3mm solid var(--zarif-gold);
   flex-shrink: 0;
+  background-color: #d8d2c2; /* fotoğrafı olmayan varyantlar için nötr dolgu */
+  background-size: cover;
+  background-position: center;
 }
