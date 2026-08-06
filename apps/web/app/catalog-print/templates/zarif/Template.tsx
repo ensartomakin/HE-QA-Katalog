@@ -18,7 +18,9 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 function formatPrice(value: number, currency: CatalogDetail['currency']): string {
-  return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
+  // Sayı ile para birimi arasında ince boşluk (U+2009) — normal boşluktan daha
+  // sıkı, tipografik olarak standart bir ayraç.
+  return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
 }
 
 function ZarifBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
@@ -31,7 +33,9 @@ function ZarifBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
 
 function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: CatalogDetail['currency'] }) {
   const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  const thumbnails = item.colorVariants.slice(0, 3);
+  // Yalnızca gerçek görseli olan renk varyantları — eksik fotoğraflı varyantlar için boş
+  // krem kutu bırakmak yerine grid, mevcut fotoğraf sayısına göre daralır.
+  const thumbnails = item.colorVariants.filter((c) => c.imageUrl).slice(0, 3);
 
   return (
     <div className="zarif-card">
@@ -40,11 +44,9 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
           {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
         </div>
         <div className="zarif-thumb-col">
-          {[0, 1, 2].map((i) => (
-            <div key={thumbnails[i]?.colorLabel ?? i} className="zarif-thumb-wrap">
-              {thumbnails[i]?.imageUrl && (
-                <img src={upsizeTsoftImageUrl(thumbnails[i].imageUrl as string, 'O')} alt={thumbnails[i].colorLabel} />
-              )}
+          {thumbnails.map((t) => (
+            <div key={t.colorLabel} className="zarif-thumb-wrap">
+              <img src={upsizeTsoftImageUrl(t.imageUrl as string, 'O')} alt={t.colorLabel} />
             </div>
           ))}
         </div>

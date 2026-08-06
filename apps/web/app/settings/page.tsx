@@ -142,12 +142,26 @@ export default function SettingsPage() {
     saveRate.mutate({ currency, ratePerTry: value });
   }
 
+  const MIN_LOGO_DIMENSION = 40; // px — bundan küçük görseller (ör. 1x1 bozuk dosya) kataloglarda görünmez bir "." lekesi bırakıyordu
+
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setLogoMessage(null);
     const reader = new FileReader();
-    reader.onload = () => setLogoPreview(reader.result as string);
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const img = new window.Image();
+      img.onload = () => {
+        if (img.naturalWidth < MIN_LOGO_DIMENSION || img.naturalHeight < MIN_LOGO_DIMENSION) {
+          setLogoMessage(`Görsel çok küçük (${img.naturalWidth}×${img.naturalHeight}px) — en az ${MIN_LOGO_DIMENSION}×${MIN_LOGO_DIMENSION}px olmalı.`);
+          e.target.value = '';
+          return;
+        }
+        setLogoPreview(dataUrl);
+      };
+      img.src = dataUrl;
+    };
     reader.readAsDataURL(file);
   }
 
