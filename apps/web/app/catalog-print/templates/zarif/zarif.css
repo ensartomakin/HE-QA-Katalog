@@ -6,7 +6,7 @@
   --zarif-panel: #f3ead9;
   --zarif-gold: #b8996a;
   --zarif-ink: #2b2420;
-  --zarif-muted: #8a7f6c;
+  --zarif-muted: #6b5f4d; /* kontrast iyileştirmesi — önceki #8a7f6c krem zeminde etiketleri okunaksız kılıyordu */
   font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
 }
 
@@ -120,7 +120,7 @@
   text-align: center;
   margin-top: 4mm;
   font-size: 10px;
-  letter-spacing: 0.15em;
+  letter-spacing: normal;
   flex-shrink: 0;
 }
 

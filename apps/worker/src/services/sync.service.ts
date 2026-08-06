@@ -171,9 +171,13 @@ async function syncColorSwatches(tsoftProductIds: string[]): Promise<void> {
       .filter((p): p is NonNullable<typeof p> => Boolean(p?.colorLabel));
 
     await prisma.productColor.deleteMany({ where: { productId: product.id } });
-    if (siblings.length === 0) continue;
 
+    // Kardeş renk varyantı yoksa da (tek renkte satılan ürün) kendi rengi swatch olarak
+    // yazılmalı — daha önce burada erken çıkılıyordu ve tek renkli ürünler katalogda hiç
+    // swatch göstermiyordu (bkz. konuşma: "—" yerine tek rengin swatch'ı görünmeli).
     const ownColor = product.colorLabel ? [{ name: product.colorLabel, hexPreview: colorNameToHex(product.colorLabel) }] : [];
+    if (siblings.length === 0 && ownColor.length === 0) continue;
+
     const siblingColors = siblings.map((s) => ({ name: s.colorLabel!, hexPreview: colorNameToHex(s.colorLabel!) }));
     const all = [...ownColor, ...siblingColors].filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
 
