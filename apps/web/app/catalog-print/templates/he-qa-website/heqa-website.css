@@ -318,7 +318,9 @@
 .heqa-fabric-text {
   font-size: 7px;
   line-height: 1.35;
-  height: 2.7em;
+  /* İçerik yüksekliği (2 satır) + kenarlık/dolgu — box-sizing: border-box'ta bunlar
+     olmadan kutu yalnızca ~1 satıra sığar ve ikinci satır kırpılırdı. */
+  height: calc(2.7em + 2mm + 2px);
   border: 1px solid var(--heqa-border);
   padding: 1mm;
   box-sizing: border-box;
