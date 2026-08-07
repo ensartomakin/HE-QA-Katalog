@@ -90,15 +90,17 @@
 .heqa-grid-page {
   background: var(--heqa-page-bg);
   color: var(--heqa-ink);
-  padding: 8mm;
+  padding: 6mm;
   display: flex;
   flex-direction: column;
 }
 
+/* İnce siyah çerçeve — sayfa içeriğini (logo + ürün ızgarası) tek bir kutuda toplar. */
 .heqa-page-frame {
   flex: 1;
   min-height: 0;
-  padding: 8mm;
+  border: 1px solid var(--heqa-border);
+  padding: 6mm;
   display: flex;
   flex-direction: column;
 }
@@ -108,7 +110,7 @@
   font-size: 18px;
   font-weight: 600;
   letter-spacing: 0.1em;
-  height: 12mm;
+  height: 10mm;
   flex-shrink: 0;
 }
 
@@ -119,7 +121,7 @@
   gap: 6mm;
   flex: 1;
   min-height: 0;
-  margin-top: 4mm;
+  margin-top: 2mm;
 }
 
 .heqa-page-number {
@@ -143,7 +145,7 @@
 .heqa-media-row {
   display: flex;
   gap: 2mm;
-  height: 70.5mm;
+  height: 76.5mm;
   flex-shrink: 0;
 }
 
@@ -317,6 +319,9 @@
   font-size: 7px;
   line-height: 1.35;
   height: 2.7em;
+  border: 1px solid var(--heqa-border);
+  padding: 1mm;
+  box-sizing: border-box;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -330,10 +335,12 @@
 }
 
 .heqa-color-dots {
-  display: flex;
+  display: inline-flex;
   gap: 1.5mm;
   flex-wrap: nowrap;
   overflow: hidden;
+  border: 1px solid var(--heqa-border);
+  padding: 1mm 1.5mm;
 }
 
 .heqa-color-dot {
