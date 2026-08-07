@@ -272,7 +272,16 @@ export class TSoftClient implements TSoftClientApi {
       logger.info(`[mapProduct] tüm anahtarlar: ${Object.keys(p).join(', ')}`);
     }
     const stock = Number(p.Stock ?? p.stock ?? 0);
-    const parentPrice = Number(p.SellingPrice ?? p.sellingPrice ?? 0);
+    // Faz 0.6 keşfi (2026-08-07): `SellingPrice` KDV HARİÇ liste fiyatı — mağaza sitesinde
+    // müşteriye hiç gösterilmiyor. Canlı siteyle karşılaştırıldı (T6766, Kuşaklı Uzun
+    // Trençkot Kemik): SellingPrice=2945.36 ama sitede üstü çizili gösterilen gerçek
+    // indirimsiz fiyat 3239.90 TL — bu da `SellingPriceVatIncludedNoDiscount` alanına
+    // (KDV DAHİL, tsoft'un kendi indirimi UYGULANMADAN) birebir eşleşiyor. Toptan fiyat
+    // hesaplaması (bkz. sync.service.ts → calculatePrice) bu KDV dahil indirimsiz fiyat
+    // üzerinden yapılmalı — tsoft'un kendi aktif indirimi (DiscountedPrice/
+    // SellingPriceVatIncluded, örn. %10) burada KASITLI olarak yok sayılıyor, bizim
+    // toptan indirimimiz (örn. %40) her zaman TAM liste fiyatı üzerinden hesaplanır.
+    const parentPrice = Number(p.SellingPriceVatIncludedNoDiscount ?? p.sellingPriceVatIncludedNoDiscount ?? p.SellingPrice ?? p.sellingPrice ?? 0);
 
     // Faz 0.5 keşfi (2026-08-05): beden kırılımı `product/get`'e `FetchSubProducts=true`
     // gönderildiğinde `SubProducts` alanında geliyor — bu parametre olmadan istek "başarılı"
@@ -301,7 +310,9 @@ export class TSoftClient implements TSoftClientApi {
       ? `${this.creds.apiUrl}/${rawImageFilename}`
       : rawImageFilename;
 
-    const discountedPrice = Number(p.DiscountedPrice ?? p.discountedPrice ?? 0);
+    // discountRate burada yalnızca bilgi amaçlı — tsoft'un KENDİ aktif indirimini yansıtır,
+    // bizim toptan fiyat hesaplamamızda (parentPrice her zaman indirimsiz) kullanılmaz.
+    const discountedPrice = Number(p.SellingPriceVatIncluded ?? p.sellingPriceVatIncluded ?? p.DiscountedPrice ?? p.discountedPrice ?? 0);
     const discountRate =
       Number(p.DiscountRate ?? p.discountRate ?? 0) ||
       (parentPrice > 0 && discountedPrice > 0 && discountedPrice < parentPrice ? Math.round(((parentPrice - discountedPrice) / parentPrice) * 100) : 0);

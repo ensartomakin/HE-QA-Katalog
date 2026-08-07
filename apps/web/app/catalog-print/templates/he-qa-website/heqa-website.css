@@ -5,12 +5,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 .heqa {
+  /* Kullanıcının verdiği renk paleti: General Black (#000000), White (#FFFFFF),
+     Gray (#C4C4C4) — %100; Black ve Yellow (#F4E624) — %80 opaklık. */
   --heqa-page-bg: #ffffff;
   --heqa-panel: #ffffff;
-  --heqa-border: #1a1a1a;
-  --heqa-ink: #1a1a1a;
-  --heqa-muted: #6b6b6b;
-  --heqa-yellow: #f5e60a;
+  --heqa-border: rgba(0, 0, 0, 0.8);
+  --heqa-ink: #000000;
+  --heqa-muted: #c4c4c4;
+  --heqa-yellow: rgba(244, 230, 36, 0.8);
   font-family: 'Inter', sans-serif;
 }
 
