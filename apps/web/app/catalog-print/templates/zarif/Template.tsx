@@ -31,7 +31,15 @@ function ZarifBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
   return <span>HE-QA</span>;
 }
 
-function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: CatalogDetail['currency'] }) {
+function ZarifProductCard({
+  item,
+  currency,
+  discountPct,
+}: {
+  item: CatalogItem;
+  currency: CatalogDetail['currency'];
+  discountPct: number;
+}) {
   const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
   // Yalnızca gerçek görseli olan, DİĞER renk varyantları — büyük görselde zaten gösterilen
   // ürünün kendi rengi burada tekrar edilmez. Eksik fotoğraflı varyantlar için boş krem
@@ -62,7 +70,11 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         </div>
         <div className="zarif-price-block">
           <div className="zarif-label">Toptan Fiyat</div>
-          <div className="zarif-price-pill">{formatPrice(item.priceDisplay, currency)}</div>
+          <div className="zarif-price-original">{formatPrice(item.originalPriceDisplay, currency)}</div>
+          <div className="zarif-price-row">
+            <span className="zarif-price-pill">{formatPrice(item.priceDisplay, currency)}</span>
+            <span className="zarif-price-discount">%{Math.round(discountPct)}</span>
+          </div>
         </div>
       </div>
 
@@ -135,7 +147,7 @@ export default function ZarifTemplate({ catalog, settings }: CatalogPrintTemplat
 
             <div className="zarif-product-grid">
               {pageItems.map((item) => (
-                <ZarifProductCard key={item.id} item={item} currency={catalog.currency} />
+                <ZarifProductCard key={item.id} item={item} currency={catalog.currency} discountPct={catalog.discountPct} />
               ))}
             </div>
 

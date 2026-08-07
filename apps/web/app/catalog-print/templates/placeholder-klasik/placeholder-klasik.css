@@ -185,11 +185,18 @@
   line-height: 1.35;
 }
 
+.product-price-original {
+  font-size: 9px;
+  color: var(--color-pebble);
+  text-decoration: line-through;
+  margin-top: 2mm;
+}
+
 .product-price-row {
   display: flex;
   align-items: baseline;
   gap: 2mm;
-  margin-top: 2mm;
+  margin-top: 0.5mm;
 }
 
 .product-price {

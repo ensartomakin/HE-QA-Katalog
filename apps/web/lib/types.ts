@@ -56,6 +56,7 @@ export interface CatalogItem {
   product: Product;
   priceTry: number;
   priceDisplay: number;
+  originalPriceDisplay: number;
   colorVariants: CatalogItemColorVariant[];
 }
 
