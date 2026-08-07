@@ -314,7 +314,4 @@
   border-radius: 50%;
   border: 0.3mm solid var(--zarif-gold);
   flex-shrink: 0;
-  background-color: #d8d2c2; /* fotoğrafı olmayan varyantlar için nötr dolgu */
-  background-size: cover;
-  background-position: center;
 }

@@ -312,7 +312,11 @@ export class TSoftClient implements TSoftClientApi {
     // renk Additional2/5'ten, kardeş renk varyantları RelatedProductsIds1'den okunur.
     const detailsHtml = String(p.Details ?? '');
     const detailsText = detailsHtml ? this.stripHtml(detailsHtml) : undefined;
-    const colorLabel = String(p.Additional2 ?? p.Additional5 ?? '').trim() || undefined;
+    // Additional2/5 bazı ürünlerde ham HTML taşıyor (örn. "<p>Kırmızı</p>") — bu
+    // temizlenmezse hem gösterimde hem renk→hex eşlemesinde ("Kırmızı" değil
+    // "pkirmizip" gibi bir token) hatalı sonuca yol açıyordu.
+    const rawColorLabel = String(p.Additional2 ?? p.Additional5 ?? '').trim();
+    const colorLabel = (rawColorLabel.includes('<') ? this.stripHtml(rawColorLabel) : rawColorLabel) || undefined;
     const relatedProductIds = String(p.RelatedProductsIds1 ?? '')
       .split(',')
       .map((id) => id.trim())
