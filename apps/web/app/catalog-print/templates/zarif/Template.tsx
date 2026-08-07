@@ -70,17 +70,9 @@ function ZarifProductCard({ item, currency }: { item: CatalogItem; currency: Cat
         <div className="zarif-colors-block">
           <div className="zarif-label">Renkler</div>
           <div className="zarif-color-dots">
-            {item.colorVariants.length > 0 ? (
-              // Adlandırılmış renk→hex tahmini (ör. "Zeytin", "Kemik") çoğu zaman gerçek ürün
-              // rengiyle alakasız çıkıyordu — bunun yerine varsa gerçek varyant fotoğrafı küçük
-              // bir yuvarlak önizleme olarak kullanılır (fotoğraf yoksa nötr bir dolgu).
-              item.colorVariants.map((c) => (
-                <span
-                  key={c.colorLabel}
-                  className="zarif-color-dot"
-                  style={c.imageUrl ? { backgroundImage: `url(${c.imageUrl})` } : undefined}
-                  title={c.colorLabel}
-                />
+            {item.product.colors.length > 0 ? (
+              item.product.colors.map((c) => (
+                <span key={c.id} className="zarif-color-dot" style={{ background: c.hexPreview ?? '#d8d2c2' }} title={c.name} />
               ))
             ) : (
               <span className="zarif-empty">—</span>

@@ -22,22 +22,82 @@ function stockStatusFromVariants(product: TSoftProduct): 'IN_STOCK' | 'LOW_STOCK
 
 // Yaygın Türkçe renk adları için yaklaşık hex önizleme — kesin bir tsoft renk kodu
 // alanı olmadığından (bkz. types/tsoft.ts) bu sadece UI'da nokta/daire önizlemesi içindir.
-const COLOR_HEX_MAP: Record<string, string> = {
-  siyah: '#1a1a1a', beyaz: '#f5f5f5', kirik_beyaz: '#f2ede1', ekru: '#e8dcc8',
-  bej: '#d9c7a3', kahve: '#5a3d2b', kahverengi: '#5a3d2b', taba: '#8a6642',
-  gri: '#8c8c8c', antrasit: '#3a3a3a', lacivert: '#1b2a4a', mavi: '#2f5d9c',
-  turkuaz: '#2a9d9a', yesil: '#4a5d3a', haki: '#6b6f4a', hardal: '#c9a23a',
-  sari: '#e0c341', turuncu: '#d9722c', kirmizi: '#b3312c', bordo: '#5c1f2b',
-  pembe: '#d99aa3', mor: '#6b4a7a', gul_kurusu: '#a9707a', vizon: '#9b8b7a',
+//
+// Önceki sürüm yalnızca TAM ad eşleşmesi arıyordu ("açık mavi" gibi bileşik adlar
+// eşleşmiyor, yanlış krem tonuna düşüyordu). Bu sürüm taban renk kelimesini (mavi,
+// yeşil, kahve…) HSL tonu olarak tutar, "açık/koyu/soft/buz/gece/acı/bebe/pastel"
+// gibi değiştirici kelimeleri ayrıca tanıyıp parlaklık/doygunluğu ayarlar — böylece
+// "Açık Mavi", "Buz Mavi", "Koyu Adaçayı", "Acı Kahve" gibi bileşik adlar da doğru
+// tona düşer.
+const BASE_COLOR_HSL: Record<string, [number, number, number]> = {
+  siyah: [0, 0, 12], beyaz: [0, 0, 96], gri: [30, 6, 58], antrasit: [220, 8, 24],
+  lacivert: [225, 48, 20], mavi: [212, 55, 48], turkuaz: [178, 45, 40],
+  yesil: [125, 30, 30], haki: [65, 28, 36], hardal: [45, 58, 45], sari: [50, 68, 55],
+  turuncu: [26, 68, 52], kirmizi: [355, 58, 45], bordo: [350, 48, 24],
+  pembe: [340, 48, 76], mor: [278, 32, 42], kahve: [25, 38, 26], kahverengi: [25, 38, 26],
+  taba: [28, 38, 42], bej: [38, 28, 78], ekru: [42, 22, 85], krem: [42, 28, 90],
+  vizon: [30, 15, 55], zeytin: [65, 28, 32], adacayi: [100, 18, 42],
+  okaliptus: [155, 20, 45], findik: [28, 32, 42], kemik: [42, 20, 86], sedef: [42, 12, 88],
 };
 
-function colorNameToHex(name: string): string | undefined {
-  const key = name
+// Tek kelimeye ayrışmayan özel bileşik adlar (boşluksuz normalize edilmiş hâliyle).
+const EXACT_COLOR_HSL: Record<string, [number, number, number]> = {
+  kirikbeyaz: [40, 15, 90],
+  gulkurusu: [350, 28, 68],
+};
+
+const COLOR_MODIFIERS: Record<string, { l?: number; s?: number }> = {
+  acik: { l: 18 }, koyu: { l: -16 }, soft: { l: 10, s: -12 }, buz: { l: 22, s: -18 },
+  gece: { l: -22 }, aci: { l: -10 }, bebe: { l: 20, s: -8 }, pastel: { l: 14, s: -14 },
+};
+
+function normalizeToken(token: string): string {
+  return token
     .toLocaleLowerCase('tr-TR')
     .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-    .replace(/[^a-z]+/g, '_')
-    .replace(/(^_|_$)/g, '');
-  return COLOR_HEX_MAP[key];
+    .replace(/[^a-z]/g, '');
+}
+
+function clamp(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sN = clamp(s, 0, 100) / 100;
+  const lN = clamp(l, 0, 100) / 100;
+  const c = (1 - Math.abs(2 * lN - 1)) * sN;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = lN - c / 2;
+  let [r, g, b] = [0, 0, 0];
+  if (h < 60) [r, g, b] = [c, x, 0];
+  else if (h < 120) [r, g, b] = [x, c, 0];
+  else if (h < 180) [r, g, b] = [0, c, x];
+  else if (h < 240) [r, g, b] = [0, x, c];
+  else if (h < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export function colorNameToHex(name: string): string | undefined {
+  const clean = name.includes('<') ? name.replace(/<[^>]*>/g, ' ') : name;
+  const words = clean.split(/\s+/).map(normalizeToken).filter(Boolean);
+  if (words.length === 0) return undefined;
+
+  const joined = words.join('');
+  if (EXACT_COLOR_HSL[joined]) return hslToHex(...EXACT_COLOR_HSL[joined]);
+
+  const baseWord = words.find((w) => BASE_COLOR_HSL[w]);
+  if (!baseWord) return undefined;
+
+  let [h, s, l] = BASE_COLOR_HSL[baseWord];
+  for (const w of words) {
+    const mod = COLOR_MODIFIERS[w];
+    if (!mod) continue;
+    if (mod.l) l = clamp(l + mod.l, 5, 95);
+    if (mod.s) s = clamp(s + mod.s, 0, 100);
+  }
+  return hslToHex(h, s, l);
 }
 
 /**
