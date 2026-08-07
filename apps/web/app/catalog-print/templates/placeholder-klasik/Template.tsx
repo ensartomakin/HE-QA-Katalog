@@ -17,7 +17,15 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
-function ProductCardPrint({ item, currency }: { item: CatalogItem; currency: CatalogDetail['currency'] }) {
+function ProductCardPrint({
+  item,
+  currency,
+  discountPct,
+}: {
+  item: CatalogItem;
+  currency: CatalogDetail['currency'];
+  discountPct: number;
+}) {
   const primaryImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
   const symbol = CURRENCY_SYMBOL[currency];
 
@@ -43,11 +51,14 @@ function ProductCardPrint({ item, currency }: { item: CatalogItem; currency: Cat
 
       {item.product.fabricInfo && <div className="product-fabric">{item.product.fabricInfo}</div>}
 
+      <div className="product-price-original">
+        {item.originalPriceDisplay.toFixed(2)} {symbol}
+      </div>
       <div className="product-price-row">
         <span className="product-price">
           {item.priceDisplay.toFixed(2)} {symbol}
         </span>
-        <span className="product-price-badge">%40 İNDİRİMLİ</span>
+        <span className="product-price-badge">%{Math.round(discountPct)}</span>
       </div>
     </div>
   );
@@ -79,7 +90,7 @@ export default function PlaceholderKlasikTemplate({ catalog, settings }: Catalog
 
           <div className="trust-band">
             <div className="trust-item">
-              <strong>%40 Toptan İndirim</strong>
+              <strong>%{Math.round(catalog.discountPct)} Toptan İndirim</strong>
               Tüm ürünlerde geçerli sabit toptan indirim oranı.
             </div>
             <div className="trust-item">
@@ -108,7 +119,7 @@ export default function PlaceholderKlasikTemplate({ catalog, settings }: Catalog
           </div>
           <div className="product-grid">
             {pageItems.map((item) => (
-              <ProductCardPrint key={item.id} item={item} currency={catalog.currency} />
+              <ProductCardPrint key={item.id} item={item} currency={catalog.currency} discountPct={catalog.discountPct} />
             ))}
           </div>
         </div>

@@ -1,21 +1,25 @@
-/* "Zarif" şablonu — kapak fotoğrafı + 2x2 ürün vitrini. Kullanıcının verdiği referans
-   görsele göre: krem zemin, ince altın/bronz çerçeveler, serif marka başlığı. */
+/* "HE-QA Website" şablonu — he-qa.com mağaza vitrinindeki ürün kartı stilini yansıtır:
+   Inter fontu, sarı fiyat rozeti, çerçevesiz ürün görselleri, ince siyah çerçeveli
+   metin kutuları. Kapak fotoğrafı + 2x2 ürün vitrini (bkz. "Zarif" şablonu — aynı
+   iskelet, farklı görsel dil). */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-.zarif {
-  --zarif-cream: #faf5ea;
-  --zarif-panel: #f3ead9;
-  --zarif-gold: #b8996a;
-  --zarif-ink: #2b2420;
-  --zarif-muted: #6b5f4d; /* kontrast iyileştirmesi — önceki #8a7f6c krem zeminde etiketleri okunaksız kılıyordu */
-  font-family: Georgia, 'Times New Roman', 'Noto Serif', serif;
+.heqa {
+  --heqa-page-bg: #ffffff;
+  --heqa-panel: #ffffff;
+  --heqa-border: #1a1a1a;
+  --heqa-ink: #1a1a1a;
+  --heqa-muted: #6b6b6b;
+  --heqa-yellow: #f5e60a;
+  font-family: 'Inter', sans-serif;
 }
 
 /* --- Kapak sayfası --- */
-.zarif-cover-page {
-  background: var(--zarif-cream);
+.heqa-cover-page {
+  background: var(--heqa-page-bg);
 }
 
-.zarif-cover-image {
+.heqa-cover-image {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -24,7 +28,7 @@
   z-index: 0;
 }
 
-.zarif-cover-page.has-cover-image::after {
+.heqa-cover-page.has-cover-image::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -32,7 +36,7 @@
   z-index: 1;
 }
 
-.zarif-cover-content {
+.heqa-cover-content {
   position: relative;
   z-index: 2;
   height: 100%;
@@ -42,20 +46,20 @@
   justify-content: flex-end;
   padding: 22mm 18mm;
   text-align: center;
-  color: var(--zarif-ink);
+  color: var(--heqa-ink);
 }
 
-.zarif-cover-page.has-cover-image .zarif-cover-content {
+.heqa-cover-page.has-cover-image .heqa-cover-content {
   color: #fff;
 }
 
-.zarif-cover-brand {
+.heqa-cover-brand {
   font-size: 22px;
   letter-spacing: 0.35em;
   margin-bottom: 14mm;
 }
 
-.zarif-brand-logo {
+.heqa-brand-logo {
   max-height: 14mm;
   max-width: 60mm;
   object-fit: contain;
@@ -63,50 +67,50 @@
   margin: 0 auto;
 }
 
-.zarif-cover-title {
+.heqa-cover-title {
   font-size: 30px;
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
-.zarif-cover-subtitle {
+.heqa-cover-subtitle {
   font-size: 12px;
-  letter-spacing: 0.03em;
   margin-top: 5mm;
   max-width: 110mm;
   line-height: 1.5;
-  opacity: 0.85;
+  opacity: 0.75;
 }
 
 /* --- Ürün grid sayfası ---
    Tüm ölçüler sabit (mm/satır-kırpma ile) — ürün adı, kumaş açıklaması gibi değişken
    uzunluktaki metinler kart yüksekliğini/hizasını asla etkilemez; her kart aynı iskelete
-   sahiptir (bkz. konuşma: "alanların hepsi sabit olsun, tasarımda kayma olmasın"). */
-.zarif-grid-page {
-  background: var(--zarif-cream);
-  color: var(--zarif-ink);
+   sahiptir. */
+.heqa-grid-page {
+  background: var(--heqa-page-bg);
+  color: var(--heqa-ink);
   padding: 8mm;
   display: flex;
   flex-direction: column;
 }
 
-.zarif-page-frame {
+.heqa-page-frame {
   flex: 1;
   min-height: 0;
-  border: 0.6pt solid var(--zarif-gold);
   padding: 8mm;
   display: flex;
   flex-direction: column;
 }
 
-.zarif-page-brand {
+.heqa-page-brand {
   text-align: center;
   font-size: 18px;
-  letter-spacing: 0.35em;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   height: 12mm;
   flex-shrink: 0;
 }
 
-.zarif-product-grid {
+.heqa-product-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
@@ -116,15 +120,14 @@
   margin-top: 4mm;
 }
 
-.zarif-page-number {
+.heqa-page-number {
   text-align: center;
   margin-top: 4mm;
   font-size: 10px;
-  letter-spacing: normal;
   flex-shrink: 0;
 }
 
-.zarif-card {
+.heqa-card {
   padding: 3mm;
   display: flex;
   flex-direction: column;
@@ -133,33 +136,33 @@
   overflow: hidden;
 }
 
-/* Ana görsel + 3 renk varyantı küçük görseli — sabit yükseklik, kutu sabit kalır. object-fit
-   ile bu kutuyu doldurur; kaynak görselin oranı ne olursa olsun düzen sabit kalır. */
-.zarif-media-row {
+/* Ana görsel + 3 renk varyantı küçük görseli — çerçevesiz, beyaz zemin (site vitrinindeki
+   gibi). Sabit yükseklik, kutu sabit kalır — object-fit ile doldurulur. */
+.heqa-media-row {
   display: flex;
   gap: 2mm;
   height: 70.5mm;
   flex-shrink: 0;
 }
 
-.zarif-hero-wrap {
+.heqa-hero-wrap {
   flex: 2.2;
   height: 100%;
   overflow: hidden;
-  background: var(--zarif-panel);
+  background: var(--heqa-panel);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.zarif-hero-wrap img {
+.heqa-hero-wrap img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
 }
 
-.zarif-thumb-col {
+.heqa-thumb-col {
   flex: 1;
   height: 100%;
   display: flex;
@@ -167,24 +170,24 @@
   gap: 1.5mm;
 }
 
-.zarif-thumb-wrap {
+.heqa-thumb-wrap {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  background: var(--zarif-panel);
+  background: var(--heqa-panel);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.zarif-thumb-wrap img {
+.heqa-thumb-wrap img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
 }
 
-.zarif-row {
+.heqa-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -192,38 +195,38 @@
   flex-shrink: 0;
 }
 
-.zarif-row-name-price {
+.heqa-row-name-price {
   height: 14mm;
-  /* Üstteki .zarif-media-row ile aynı oran (2.2:1) ve gap — başlık büyük görselin,
+  /* Üstteki .heqa-media-row ile aynı oran (2.2:1) ve gap — başlık büyük görselin,
      fiyat küçük görsel sütununun genişliğiyle hizalı ortalanır. */
   gap: 2mm;
 }
 
-.zarif-row-colors {
+.heqa-row-colors {
   height: 6mm;
 }
 
-.zarif-row-meta {
+.heqa-row-meta {
   height: 13.5mm;
   gap: 2mm;
 }
 
-.zarif-label {
+.heqa-label {
   font-size: 6.5px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--zarif-muted);
+  color: var(--heqa-muted);
   margin-bottom: 0.8mm;
-  font-family: var(--font-beausite);
+  font-weight: 500;
 }
 
-.zarif-name-block {
+.heqa-name-block {
   flex: 2.2;
   min-width: 0;
   text-align: center;
 }
 
-.zarif-product-name {
+.heqa-product-name {
   font-size: 9.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -235,62 +238,65 @@
   -webkit-box-orient: vertical;
 }
 
-.zarif-price-block {
+.heqa-price-block {
   flex: 1;
   min-width: 0;
   text-align: center;
 }
 
-.zarif-price-original {
+.heqa-price-original {
   font-size: 7px;
-  color: var(--zarif-muted);
+  color: var(--heqa-muted);
   text-decoration: line-through;
   margin-bottom: 0.5mm;
 }
 
-.zarif-price-row {
+.heqa-price-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1mm;
 }
 
-.zarif-price-pill {
+/* Sarı fiyat rozeti + ince siyah çerçeve — he-qa.com'daki fiyat etiketi stili. */
+.heqa-price-pill {
   font-size: 10.5px;
   font-weight: 700;
-  border: 0.4pt solid var(--zarif-gold);
-  background: var(--zarif-panel);
+  border: 1px solid var(--heqa-border);
+  background: var(--heqa-yellow);
+  color: var(--heqa-ink);
   padding: 1.3mm 2.6mm;
   white-space: nowrap;
   display: inline-block;
 }
 
-.zarif-price-discount {
+.heqa-price-discount {
   font-size: 8px;
   font-weight: 700;
-  border: 0.4pt solid var(--zarif-gold);
-  background: var(--zarif-panel);
+  border: 1px solid var(--heqa-border);
+  background: var(--heqa-yellow);
+  color: var(--heqa-ink);
   padding: 1mm 1.6mm;
   white-space: nowrap;
 }
 
-.zarif-size-block {
+.heqa-size-block {
   flex: 1;
   min-width: 0;
 }
 
-.zarif-fabric-block {
+.heqa-fabric-block {
   flex: 1.3;
   min-width: 0;
 }
 
-.zarif-colors-block {
+.heqa-colors-block {
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
 }
 
-.zarif-size-list {
+.heqa-size-list {
   display: flex;
   flex-wrap: wrap;
   gap: 1mm;
@@ -298,18 +304,16 @@
   overflow: hidden;
 }
 
-.zarif-size-box {
+.heqa-size-box {
   font-size: 7px;
-  border: 0.4pt solid var(--zarif-gold);
+  border: 1px solid var(--heqa-border);
   padding: 0.8mm 1.8mm;
-  font-family: var(--font-beausite);
   height: fit-content;
 }
 
-.zarif-fabric-text {
+.heqa-fabric-text {
   font-size: 7px;
   line-height: 1.35;
-  font-family: var(--font-beausite);
   height: 2.7em;
   overflow: hidden;
   display: -webkit-box;
@@ -317,24 +321,23 @@
   -webkit-box-orient: vertical;
 }
 
-.zarif-empty {
+.heqa-empty {
   font-size: 7px;
-  color: var(--zarif-muted);
+  color: var(--heqa-muted);
   font-style: italic;
-  font-family: var(--font-beausite);
 }
 
-.zarif-color-dots {
+.heqa-color-dots {
   display: flex;
   gap: 1.5mm;
   flex-wrap: nowrap;
   overflow: hidden;
 }
 
-.zarif-color-dot {
+.heqa-color-dot {
   width: 3mm;
   height: 3mm;
   border-radius: 50%;
-  border: 0.3mm solid var(--zarif-gold);
+  border: 1px solid var(--heqa-border);
   flex-shrink: 0;
 }

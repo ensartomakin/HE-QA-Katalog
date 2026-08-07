@@ -88,6 +88,9 @@ export async function getCatalogDetail(id: string) {
       discountPct,
       ratePerTry,
     });
+    // İndirimsiz (üstü çizili gösterilecek) liste fiyatı — aynı TRY→hedef para birimi
+    // çevrimi, yalnızca indirim uygulanmadan (bkz. calculatePrice).
+    const originalPriceDisplay = Math.round((Number(item.product.sourcePriceTry) / ratePerTry + Number.EPSILON) * 100) / 100;
 
     const variantTsoftIds = [item.product.tsoftProductId, ...item.product.tsoftRelatedIds];
     const colorVariants = variantTsoftIds
@@ -96,7 +99,7 @@ export async function getCatalogDetail(id: string) {
       .map((p) => ({ colorLabel: p.colorLabel as string, imageUrl: p.images[0]?.url ?? null }))
       .filter((c, i, arr) => arr.findIndex((x) => x.colorLabel === c.colorLabel) === i);
 
-    return { ...item, priceTry: wholesaleTry, priceDisplay: displayPrice, colorVariants };
+    return { ...item, priceTry: wholesaleTry, priceDisplay: displayPrice, originalPriceDisplay, colorVariants };
   });
 
   return { ...catalog, items, discountPct };

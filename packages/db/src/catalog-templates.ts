@@ -13,6 +13,11 @@ export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
     description: 'Kapak fotoğrafı + sayfa başına 4 ürünlük vitrin: ana görsel, renk varyantı küçük görselleri, toptan fiyat, beden ve kumaş bilgisi.',
   },
   {
+    id: 'he-qa-website',
+    name: 'HE-QA Website',
+    description: 'he-qa.com mağaza vitrinindeki ürün kartı stilini yansıtır: Inter fontu, sarı fiyat rozeti, çerçevesiz ürün görselleri, ince siyah çerçeveli metin kutuları.',
+  },
+  {
     id: 'placeholder-klasik',
     name: 'Geçici Düzen',
     description: 'İlk özel şablon tasarımı eklenene kadar kullanılan geçici sayfa düzeni: kapak sayfası ve 3x2 ürün ızgarası.',
