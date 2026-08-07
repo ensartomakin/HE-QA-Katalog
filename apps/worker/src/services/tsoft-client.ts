@@ -16,9 +16,19 @@ import type { TSoftClientApi } from './tsoft-client-api';
 const BATCH_SIZE = 50;
 const RATE_DELAY = 500;
 const MAX_RETRIES = 3;
+const REAUTH_COOLDOWN = 5 * 60 * 1000; // aynı mağaza için zorla yeniden-login arası minimum süre
+const CATEGORY_CACHE_TTL = 60 * 60 * 1000; // 1 saat
 
 const tokenCache = new Map<string, { token: string; expiresAt: number }>();
 const tokenCacheV3 = new Map<string, { token: string; expiresAt: number }>();
+
+// Zorla yeniden-login zaman damgası — cacheKey → son deneme zamanı (auth/login fırtınasını önler;
+// bkz. Rankify T-Soft abuse raporu 2026-08-07 — token hatası mesajı her başarısız istekte ayrı
+// ayrı yeniden login tetikliyordu)
+const lastReauthAt = new Map<string, number>();
+
+// Kategori ürün listesi önbelleği — `${cacheKey}::cat::${categoryId}` → { data, expiresAt }
+const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
 
 async function withRetry<T>(fn: () => Promise<T>, attempt = 1): Promise<T> {
   try {
@@ -159,6 +169,12 @@ export class TSoftClient implements TSoftClientApi {
       const msgStr = Array.isArray(msgText) ? String(msgText[0]) : String(msgText ?? '');
       logger.info(`[REST1 ${endpoint}] success=false msg="${msgStr}"`);
       if (msgStr.toLowerCase().includes('token')) {
+        const lastAttempt = lastReauthAt.get(this.cacheKey) ?? 0;
+        if (Date.now() - lastAttempt < REAUTH_COOLDOWN) {
+          logger.warn(`[REST1 ${endpoint}] token hatası ama soğuma süresi dolmadı (${REAUTH_COOLDOWN / 1000}s) — yeniden login denenmiyor`);
+          return res.data;
+        }
+        lastReauthAt.set(this.cacheKey, Date.now());
         tokenCache.delete(this.cacheKey);
         const newToken = await getToken(this.cacheKey, this.http, this.creds);
         const retryBody = new URLSearchParams({ token: newToken, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])) });
@@ -208,6 +224,12 @@ export class TSoftClient implements TSoftClientApi {
   }
 
   async getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]> {
+    const key = `${this.cacheKey}::cat::${categoryId}`;
+    const cached = categoryProductsCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      logger.info(`[getCategoryProductsFull] önbellekten döndü — kategori=${categoryId} toplam=${cached.data.length}`);
+      return cached.data;
+    }
     const results: TSoftProduct[] = [];
     let start = 0;
     const limit = 500;
@@ -227,6 +249,7 @@ export class TSoftClient implements TSoftClientApi {
       start += limit;
     }
     logger.info(`[getCategoryProductsFull] kategori=${categoryId} toplam=${results.length}`);
+    categoryProductsCache.set(key, { data: results, expiresAt: Date.now() + CATEGORY_CACHE_TTL });
     return results;
   }
 
