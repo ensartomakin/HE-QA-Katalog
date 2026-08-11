@@ -21,75 +21,20 @@ function EdBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
   return <span>HE-QA</span>;
 }
 
-function EdSizeLine({ label, sizes, lengthLabel, lengthLabelText }: { label: string; sizes: string[]; lengthLabel: string; lengthLabelText: string | null }) {
+function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelText: string | null }) {
   if (sizes.length === 0 && !lengthLabelText) return null;
   return (
     <div className="ed-size-line">
       {sizes.length > 0 && (
         <span>
-          <strong>{label}:</strong> {sizes.join(' ')}
+          <strong>Beden:</strong> {sizes.join(' ')}
         </span>
       )}
       {lengthLabelText && (
         <span>
-          <strong>{lengthLabel}:</strong> {lengthLabelText}
+          <strong>Boy:</strong> {lengthLabelText}
         </span>
       )}
-    </div>
-  );
-}
-
-function EdLangPanel({
-  heroImage,
-  variantThumbs,
-  productName,
-  altName,
-  description,
-  fabricLabel,
-  fabricInfo,
-  sizeLabel,
-  sizes,
-  lengthLabel,
-  lengthLabelText,
-}: {
-  heroImage: { url: string } | undefined;
-  variantThumbs: { colorLabel: string; imageUrl: string | null }[];
-  productName: string;
-  altName: string;
-  description: string | null;
-  fabricLabel: string;
-  fabricInfo: string | null;
-  sizeLabel: string;
-  sizes: string[];
-  lengthLabel: string;
-  lengthLabelText: string | null;
-}) {
-  return (
-    <div className="ed-lang-panel">
-      <div className="ed-media-row">
-        <div className="ed-hero-wrap">{heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={altName} />}</div>
-        {variantThumbs.length > 0 && (
-          <div className="ed-thumb-grid">
-            {variantThumbs.map((v) => (
-              <div key={v.colorLabel} className="ed-thumb-wrap">
-                <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="ed-rule" />
-      <div className="ed-panel-name">{productName}</div>
-      {description && <p className="ed-panel-description">{description}</p>}
-      <div className="ed-panel-meta">
-        <EdSizeLine label={sizeLabel} sizes={sizes} lengthLabel={lengthLabel} lengthLabelText={lengthLabelText} />
-        {fabricInfo && (
-          <div className="ed-fabric-line">
-            <strong>{fabricLabel}:</strong> {fabricInfo}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -108,10 +53,9 @@ function EdProductPage({
   pageNumber: number;
 }) {
   const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Küçük görseller: ana ürünün DİĞER renk varyantları — kaynak InDesign taslağındaki
-  // s.4-7'de TR ve EN panelleri AYNI foto setini kullanıyor (T-Soft'tan renk varyantı
-  // başına yalnızca 1 görsel geliyor — taslaktaki gibi dile özel çekim seti yok, bu
-  // yüzden iki panel de aynı hero+varyant görsellerini paylaşıyor).
+  // Küçük görseller: ana ürünün DİĞER renk varyantları. Kaynak IDML taslağının (s.4-7)
+  // çerçeve koordinatları incelendi: her sayfada tek bir foto galerisi var, TR/EN için
+  // ayrı galeri yok — dolayısıyla tek dilli (Türkçe) tek galerili bu yapı kaynağa uygun.
   const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
   const sizeLabels = item.product.sizes.map((s) => s.label);
 
@@ -123,32 +67,34 @@ function EdProductPage({
         </div>
 
         <div className="ed-product-layout">
-          <EdLangPanel
-            heroImage={heroImage}
-            variantThumbs={variantThumbs}
-            productName={item.product.name}
-            altName={item.product.name}
-            description={item.product.description}
-            fabricLabel="Kumaş"
-            fabricInfo={item.product.fabricInfo}
-            sizeLabel="Beden"
-            sizes={sizeLabels}
-            lengthLabel="Boy"
-            lengthLabelText={item.product.lengthLabel}
-          />
-          <EdLangPanel
-            heroImage={heroImage}
-            variantThumbs={variantThumbs}
-            productName={item.product.nameEn || item.product.name}
-            altName={item.product.nameEn || item.product.name}
-            description={item.product.descriptionEn}
-            fabricLabel="Fabric"
-            fabricInfo={item.product.fabricInfo}
-            sizeLabel="Size"
-            sizes={sizeLabels}
-            lengthLabel="Lenght"
-            lengthLabelText={item.product.lengthLabel}
-          />
+          <div className="ed-media-row">
+            <div className="ed-hero-wrap">
+              {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+            </div>
+            {variantThumbs.length > 0 && (
+              <div className="ed-thumb-grid">
+                {variantThumbs.map((v) => (
+                  <div key={v.colorLabel} className="ed-thumb-wrap">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="ed-info-col">
+            <div className="ed-rule" />
+            <div className="ed-panel-name">{item.product.name}</div>
+            {item.product.description && <p className="ed-panel-description">{item.product.description}</p>}
+            <div className="ed-panel-meta">
+              <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
+              {item.product.fabricInfo && (
+                <div className="ed-fabric-line">
+                  <strong>Kumaş:</strong> {item.product.fabricInfo}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="ed-page-footer">
@@ -175,16 +121,10 @@ function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null
         <div className="ed-about-layout">
           <div className="ed-about-col">
             <div className="ed-about-heading">HAKKIMIZDA</div>
-            <div className="ed-about-heading-en">ABOUT US</div>
             <p className="ed-about-text">
               2014 yılında kurulan EKD TEKSTİL SAN. VE TİC. LTD ŞTİ, faaliyete geçtiği günden bu yana kaliteyi ilke
               edinmiş, doğal içerikli kumaşları ulaşılabilir fiyatlarla müşterilerine sunan çevreye saygılı bir
               markadır.
-            </p>
-            <p className="ed-about-text-en">
-              Founded in 2014, EKD TEKSTİL SAN. VE TİC. LTD ŞTİ is an environmentally friendly company that has
-              adopted quality as a principle since the day it started its activities and offers fabrics with natural
-              content to its customers at accessible prices.
             </p>
           </div>
 
@@ -192,7 +132,6 @@ function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null
 
           <div className="ed-contact-col">
             <div className="ed-about-heading">İLETİŞİM</div>
-            <div className="ed-about-heading-en">CONTACT US</div>
             <div className="ed-contact-row">
               <div className="ed-label">Telefon</div>
               <div className="ed-contact-value">0264 502 29 33</div>
