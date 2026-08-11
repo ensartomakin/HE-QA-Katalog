@@ -86,11 +86,13 @@ function EdProductPage({
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
 
-  // Kaynak taslakta (s.4-7) varyant sayısı düşükken (toplam 3-4 görsel) tüm görseller
-  // eşit boyutlu tek sırada gösteriliyor (s.7); daha fazla varyantta (s.4) büyük bir
-  // hero görsel + küçük görsellerden oluşan bir ızgara kullanılıyor.
+  // Kaynak taslaktaki çok sayıda örnek sayfa (s.4-26) incelendi: 2-6 toplam görselde
+  // hepsi büyük ve eşit boyutlu tek sırada (bazen aynı rengin 2 farklı çekimi küçük bir
+  // çift olarak gruplanıyor — bizim veri modelimizde renk başına tek fotoğraf olduğu
+  // için bu çift-gruplama birebir taklit edilemiyor, o yüzden sadeleştirildi). 7+ toplam
+  // görselde büyük hero + küçük görsel ızgarası kullanılıyor (s.4'teki 9 görsellik örnek).
   const totalImageCount = (heroImage ? 1 : 0) + variantThumbs.length;
-  const useEqualRow = totalImageCount > 0 && totalImageCount <= 4;
+  const useEqualRow = totalImageCount > 0 && totalImageCount <= 6;
 
   return (
     <div className="pdf-page ed-product-page">
