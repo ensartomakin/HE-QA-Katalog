@@ -13,6 +13,32 @@ function formatPrice(value: number, currency: CatalogDetail['currency']): string
   return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
 }
 
+// Gerçek ürün açıklamaları (T-Soft'tan) genelde kumaş/kesim bilgisiyle başlayıp bakım
+// talimatı, beden/ölçü tablosu gibi katalog sayfasına uygun olmayan uzun bir kuyrukla
+// devam ediyor (bkz. "Modal Bol Kesim Blazer" örneği). Bu fonksiyon metni cümle cümle
+// baştan okur, bakım/ölçü ile ilgili bir cümleye rastlayınca durur — geriye yalnızca
+// kumaş/kesimle ilgili baş kısmı kalır.
+const DESCRIPTION_STOP_WORDS = [
+  'yıka', 'kuruma', 'kurut', 'ütü', 'beden:', 'boy:', 'boyu:', 'kalıp bilgisi', 'ölçü', 'iade', 'değişim', 'garanti', 'stok',
+];
+const DESCRIPTION_MAX_CHARS = 320;
+
+function extractFabricExcerpt(description: string | null): string | null {
+  if (!description) return null;
+  const sentences = description.split(/(?<=[.!?])\s+/);
+  const picked: string[] = [];
+  let length = 0;
+  for (const sentence of sentences) {
+    const lower = sentence.toLowerCase();
+    if (DESCRIPTION_STOP_WORDS.some((w) => lower.includes(w))) break;
+    picked.push(sentence);
+    length += sentence.length;
+    if (length >= DESCRIPTION_MAX_CHARS) break;
+  }
+  const result = picked.join(' ').trim();
+  return result || null;
+}
+
 function EdBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
   if (brandLogoUrl) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -58,6 +84,7 @@ function EdProductPage({
   // ayrı galeri yok — dolayısıyla tek dilli (Türkçe) tek galerili bu yapı kaynağa uygun.
   const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
   const sizeLabels = item.product.sizes.map((s) => s.label);
+  const descriptionExcerpt = extractFabricExcerpt(item.product.description);
 
   return (
     <div className="pdf-page ed-product-page">
@@ -85,7 +112,7 @@ function EdProductPage({
           <div className="ed-info-col">
             <div className="ed-rule" />
             <div className="ed-panel-name">{item.product.name}</div>
-            {item.product.description && <p className="ed-panel-description">{item.product.description}</p>}
+            {descriptionExcerpt && <p className="ed-panel-description">{descriptionExcerpt}</p>}
             <div className="ed-panel-meta">
               <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
               {item.product.fabricInfo && (
