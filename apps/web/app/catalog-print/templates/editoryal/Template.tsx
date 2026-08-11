@@ -9,8 +9,6 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   EUR: '€',
 };
 
-const SECONDARY_IMAGE_COUNT = 4;
-
 function formatPrice(value: number, currency: CatalogDetail['currency']): string {
   return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
 }
@@ -36,9 +34,12 @@ function EdProductPage({
   brandLogoUrl: string | null;
   pageNumber: number;
 }) {
-  const images = item.product.images;
-  const heroImage = images.find((i) => i.isPrimary) ?? images[0];
-  const secondaryImages = images.filter((i) => i.id !== heroImage?.id).slice(0, SECONDARY_IMAGE_COUNT);
+  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
+  // Küçük görseller: ana ürünün DİĞER renk varyantları (kaynak InDesign taslağındaki
+  // s.4-7 gibi) — .ed-thumb-grid flex-wrap olduğu için sayfa düzeni varyant sayısına
+  // göre otomatik değişir (çok varyant = çok satır, sıfır varyant = görsel alanı yok,
+  // ana görsel tüm alanı kaplar; bkz. editoryal.css).
+  const colorVariantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
 
   return (
     <div className="pdf-page ed-product-page">
@@ -52,11 +53,11 @@ function EdProductPage({
             <div className="ed-hero-wrap">
               {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
             </div>
-            {secondaryImages.length > 0 && (
-              <div className="ed-thumb-row">
-                {secondaryImages.map((img) => (
-                  <div key={img.id} className="ed-thumb-wrap">
-                    <img src={upsizeTsoftImageUrl(img.url, 'O')} alt={item.product.name} />
+            {colorVariantThumbs.length > 0 && (
+              <div className="ed-thumb-grid">
+                {colorVariantThumbs.map((v) => (
+                  <div key={v.colorLabel} className="ed-thumb-wrap">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
                   </div>
                 ))}
               </div>
