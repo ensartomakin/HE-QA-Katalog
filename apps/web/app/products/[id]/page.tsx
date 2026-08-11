@@ -22,6 +22,9 @@ const STOCK_LABEL: Record<Product['stockStatus'], string> = {
 export default function ProductDetailPage({ params }: { params: { id: string } }) {
   const queryClient = useQueryClient();
   const [description, setDescription] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [lengthLabel, setLengthLabel] = useState('');
   const [fabricInfo, setFabricInfo] = useState('');
   const [manualSortWeight, setManualSortWeight] = useState('');
   const [salesScore, setSalesScore] = useState('');
@@ -38,6 +41,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   useEffect(() => {
     if (!product) return;
     setDescription(product.description ?? '');
+    setDescriptionEn(product.descriptionEn ?? '');
+    setNameEn(product.nameEn ?? '');
+    setLengthLabel(product.lengthLabel ?? '');
     setFabricInfo(product.fabricInfo ?? '');
     setManualSortWeight(product.manualSortWeight?.toString() ?? '');
     setSalesScore(product.salesScore ?? '');
@@ -50,6 +56,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         method: 'PATCH',
         body: JSON.stringify({
           description: description || null,
+          descriptionEn: descriptionEn || null,
+          nameEn: nameEn || null,
+          lengthLabel: lengthLabel || null,
           fabricInfo: fabricInfo || null,
           manualSortWeight: manualSortWeight ? Number(manualSortWeight) : null,
           salesScore: salesScore ? Number(salesScore) : null,
@@ -140,10 +149,39 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </label>
 
           <label className="flex flex-col gap-[5px] text-[14px]">
+            Açıklama (İngilizce)
+            <textarea
+              value={descriptionEn}
+              onChange={(e) => setDescriptionEn(e.target.value)}
+              rows={4}
+              className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
+            Ürün Adı (İngilizce)
+            <input
+              value={nameEn}
+              onChange={(e) => setNameEn(e.target.value)}
+              className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
             Kumaş Bilgisi
             <input
               value={fabricInfo}
               onChange={(e) => setFabricInfo(e.target.value)}
+              className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
+            Boy (örn. 85 cm)
+            <input
+              value={lengthLabel}
+              onChange={(e) => setLengthLabel(e.target.value)}
+              placeholder="Örn: 85 cm"
               className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
             />
           </label>

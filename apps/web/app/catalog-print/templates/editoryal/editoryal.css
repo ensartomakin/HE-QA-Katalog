@@ -1,0 +1,446 @@
+/* "Editoryal" şablonu — grafik ekibinin InDesign taslağına (autumn 24 katalog ek.idml)
+   dayanır: A4 yatay (297x210mm), sayfa başına 1 ürün, çok sayıda ürün fotoğrafı,
+   Türkçe+İngilizce metin, Metropolis + Minion Pro fontları, kırmızı vurgu rengi. */
+
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/metropolis/Metropolis-Light.otf') format('opentype');
+  font-weight: 300;
+}
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/metropolis/Metropolis-Regular.otf') format('opentype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/metropolis/Metropolis-SemiBold.otf') format('opentype');
+  font-weight: 600;
+}
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/metropolis/Metropolis-Bold.otf') format('opentype');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'Metropolis';
+  src: url('/fonts/metropolis/Metropolis-Black.otf') format('opentype');
+  font-weight: 900;
+}
+@font-face {
+  font-family: 'Minion Pro';
+  src: url('/fonts/minion/MinionPro-Regular.otf') format('opentype');
+  font-weight: 400;
+}
+
+.editoryal {
+  /* A4 yatay — bkz. print-base.css .catalog-print varsayılanı (210mm/297mm, dikey). */
+  --page-width: 297mm;
+  --page-height: 210mm;
+
+  /* IDML'den çıkarılan renk paleti (CMYK→hex yaklaşık): kırmızı vurgu (~RGB 206,32,38),
+     neredeyse siyah metin. İlk render sonrası görsel karşılaştırmayla ince ayar yapılabilir. */
+  --ed-ink: #1a1a1a;
+  --ed-red: #ce2026;
+  --ed-paper: #ffffff;
+  --ed-muted: #8a8a86;
+  --ed-border: rgba(26, 26, 26, 0.75);
+
+  --ed-sans: 'Metropolis', ui-sans-serif, system-ui, sans-serif;
+  --ed-serif: 'Minion Pro', Georgia, 'Times New Roman', serif;
+
+  font-family: var(--ed-sans);
+  color: var(--ed-ink);
+}
+
+/* --- Kapak sayfası --- */
+.ed-cover-page {
+  background: var(--ed-paper);
+}
+
+.ed-cover-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.ed-cover-page.has-cover-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
+  z-index: 1;
+}
+
+.ed-cover-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 18mm 24mm;
+  text-align: center;
+  color: var(--ed-ink);
+}
+
+.ed-cover-page.has-cover-image .ed-cover-content {
+  color: #fff;
+}
+
+.ed-cover-brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  margin-bottom: 10mm;
+}
+
+.ed-brand-logo {
+  max-height: 12mm;
+  max-width: 55mm;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+}
+
+.ed-cover-title {
+  font-size: 32px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ed-cover-subtitle {
+  font-family: var(--ed-serif);
+  font-style: italic;
+  font-size: 13px;
+  margin-top: 5mm;
+  max-width: 140mm;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+/* --- Ortak sayfa iskeleti (ürün + hakkımızda sayfaları) --- */
+.ed-product-page,
+.ed-about-page {
+  background: var(--ed-paper);
+  color: var(--ed-ink);
+  padding: 6mm;
+}
+
+.ed-page-frame {
+  height: 100%;
+  border: 1px solid var(--ed-border);
+  padding: 6mm 8mm;
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-page-header {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  height: 8mm;
+}
+
+.ed-page-number {
+  flex-shrink: 0;
+  text-align: center;
+  margin-top: 3mm;
+  font-size: 9px;
+  color: var(--ed-muted);
+}
+
+.ed-rule {
+  height: 1px;
+  background: var(--ed-red);
+  margin: 3mm 0;
+  flex-shrink: 0;
+}
+
+.ed-label {
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ed-muted);
+  margin-bottom: 1mm;
+  font-weight: 600;
+}
+
+.ed-empty {
+  font-size: 9px;
+  color: var(--ed-muted);
+  font-style: italic;
+}
+
+/* --- Ürün sayfası --- */
+.ed-product-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 8mm;
+  margin-top: 2mm;
+}
+
+.ed-media-col {
+  flex: 1.35;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+
+.ed-hero-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #f4f3f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-hero-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ed-thumb-row {
+  flex-shrink: 0;
+  display: flex;
+  gap: 2.5mm;
+  height: 30mm;
+}
+
+.ed-thumb-wrap {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  background: #f4f3f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ed-info-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.ed-name-block {
+  flex-shrink: 0;
+}
+
+.ed-product-name {
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+.ed-product-name-en {
+  font-family: var(--ed-serif);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ed-muted);
+  margin-top: 1mm;
+}
+
+.ed-description-block {
+  flex-shrink: 0;
+  margin-bottom: 3mm;
+}
+
+.ed-description {
+  font-size: 9px;
+  line-height: 1.5;
+  margin: 0 0 2mm;
+}
+
+.ed-description-en {
+  font-family: var(--ed-serif);
+  font-style: italic;
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--ed-muted);
+  margin: 0;
+}
+
+.ed-meta-row {
+  flex-shrink: 0;
+  display: flex;
+  gap: 5mm;
+  margin-bottom: 3mm;
+}
+
+.ed-meta-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-meta-block-fabric {
+  flex: 1.4;
+}
+
+.ed-size-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+}
+
+.ed-size-box {
+  font-size: 8px;
+  border: 1px solid var(--ed-border);
+  padding: 0.8mm 2mm;
+  height: fit-content;
+}
+
+.ed-length-value,
+.ed-fabric-value {
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.ed-bottom-row {
+  margin-top: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4mm;
+  padding-top: 3mm;
+  border-top: 1px solid var(--ed-border);
+}
+
+.ed-colors-block {
+  min-width: 0;
+}
+
+.ed-color-dots {
+  display: inline-flex;
+  gap: 1.5mm;
+  flex-wrap: wrap;
+}
+
+.ed-color-dot {
+  width: 3.5mm;
+  height: 3.5mm;
+  border-radius: 50%;
+  border: 1px solid var(--ed-border);
+  flex-shrink: 0;
+}
+
+.ed-price-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ed-price-original {
+  font-size: 8px;
+  color: var(--ed-muted);
+  text-decoration: line-through;
+  margin-bottom: 0.5mm;
+}
+
+.ed-price-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1.5mm;
+}
+
+.ed-price-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ed-red);
+}
+
+.ed-price-discount {
+  font-size: 9px;
+  font-weight: 700;
+  border: 1px solid var(--ed-red);
+  color: var(--ed-red);
+  padding: 0.6mm 1.6mm;
+  white-space: nowrap;
+}
+
+/* --- Hakkımızda / İletişim sayfası --- */
+.ed-about-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  gap: 10mm;
+  padding: 0 12mm;
+}
+
+.ed-rule-vertical {
+  width: 1px;
+  height: 60%;
+  align-self: center;
+  margin: 0;
+}
+
+.ed-about-col,
+.ed-contact-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.ed-about-heading {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ed-about-heading-en {
+  font-family: var(--ed-serif);
+  font-style: italic;
+  font-size: 10px;
+  color: var(--ed-muted);
+  margin-bottom: 4mm;
+}
+
+.ed-about-text {
+  font-size: 10px;
+  line-height: 1.6;
+  margin: 0 0 3mm;
+}
+
+.ed-about-text-en {
+  font-family: var(--ed-serif);
+  font-style: italic;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--ed-muted);
+  margin: 0;
+}
+
+.ed-contact-row {
+  margin-bottom: 4mm;
+}
+
+.ed-contact-value {
+  font-size: 11px;
+  line-height: 1.4;
+}

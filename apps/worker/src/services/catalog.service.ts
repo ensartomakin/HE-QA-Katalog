@@ -1,4 +1,4 @@
-import { calculatePrice } from '@he-qa/db';
+import { calculatePrice, CATALOG_TEMPLATES } from '@he-qa/db';
 import { prisma } from '../db/prisma';
 
 export interface CreateCatalogInput {
@@ -103,6 +103,13 @@ export async function getCatalogDetail(id: string) {
   });
 
   return { ...catalog, items, discountPct };
+}
+
+/** PDF üretiminde (pdf.service.ts) sayfa boyutunu (dikey/yatay) belirlemek için kullanılır. */
+export async function getCatalogOrientation(id: string): Promise<'portrait' | 'landscape'> {
+  const catalog = await prisma.catalog.findUnique({ where: { id }, select: { templateId: true } });
+  const template = CATALOG_TEMPLATES.find((t) => t.id === catalog?.templateId);
+  return template?.orientation ?? 'portrait';
 }
 
 export async function updateCatalogCoverImage(id: string, coverImageUrl: string | null) {

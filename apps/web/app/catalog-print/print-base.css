@@ -2,20 +2,27 @@
    mekaniği. Şablona özgü görsel stiller apps/web/app/catalog-print/templates/<id>/
    altında kendi CSS dosyalarında tanımlanır. */
 
+/* `size` KASITLI OLARAK burada tanımlanmıyor — Playwright'ta sabit bir `@page { size }`
+   değeri, page.pdf()'e verilen width/height'ı (bkz. pdf.service.ts, katalog şablonunun
+   yönüne göre 210x297mm veya 297x210mm) preferCSSPageSize:false olsa bile eziyor
+   (doğrulandı). Sayfa boyutu tamamen pdf.service.ts'teki width/height'a bırakılıyor. */
 @page {
-  size: A4;
   margin: 0;
 }
 
 .catalog-print {
+  /* Şablona özgü CSS (örn. editoryal.css) kök class'ında bunları yatay için
+     297mm/210mm olarak override edebilir — bkz. .pdf-page. */
+  --page-width: 210mm;
+  --page-height: 297mm;
   font-family: var(--font-beausite);
   color: var(--color-ink-black);
   background: var(--color-bone-white);
 }
 
 .pdf-page {
-  width: 210mm;
-  height: 297mm;
+  width: var(--page-width);
+  height: var(--page-height);
   position: relative;
   overflow: hidden;
   background: var(--color-bone-white);

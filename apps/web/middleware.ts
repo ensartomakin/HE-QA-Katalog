@@ -5,7 +5,10 @@ import { SESSION_COOKIE, verifySessionToken } from '@/lib/session';
 // tarayıcı oturumu taşımaz, bu yüzden bilinçli olarak oturum kontrolünden muaf tutuluyor.
 // Kataloglar tahmin edilemez cuid id ile korunuyor (bkz. docs/SISTEM-TASARIMI.md §6, Faz 1
 // için kabul edilebilir bir basitleştirme — üretimde imzalı/süreli bağlantıya evrilebilir).
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/bootstrap', '/api/auth/status', '/catalog-print'];
+// /fonts, /catalog-print'in yüklediği @font-face dosyaları (public/fonts) için — matcher
+// yalnızca _next/static'i muaf tutuyor, public/ altındaki diğer statik dosyalar bu olmadan
+// oturumsuz istekte login'e yönlenip (200 OK ile) font yerine HTML döndürüyordu.
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/bootstrap', '/api/auth/status', '/catalog-print', '/fonts'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
