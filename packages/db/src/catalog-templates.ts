@@ -4,6 +4,8 @@ export interface CatalogTemplateMeta {
   description: string;
   /** Gerçek bir tasarım eklenene kadar kullanılan geçici düzen. */
   isPlaceholder?: boolean;
+  /** Sayfa yönü — belirtilmezse dikey (A4 210x297mm) varsayılır. */
+  orientation?: 'portrait' | 'landscape';
 }
 
 export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
@@ -16,6 +18,12 @@ export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
     id: 'he-qa-website',
     name: 'HE-QA Website',
     description: 'he-qa.com mağaza vitrinindeki ürün kartı stilini yansıtır: Inter fontu, sarı fiyat rozeti, çerçevesiz ürün görselleri, ince siyah çerçeveli metin kutuları.',
+  },
+  {
+    id: 'editoryal',
+    name: 'Editoryal',
+    description: 'Grafik ekibinin InDesign taslağına dayanır: A4 yatay, sayfa başına 1 ürün, çok sayıda ürün fotoğrafı, Türkçe+İngilizce metin, Metropolis fontu ve kırmızı vurgu rengi.',
+    orientation: 'landscape',
   },
   {
     id: 'placeholder-klasik',

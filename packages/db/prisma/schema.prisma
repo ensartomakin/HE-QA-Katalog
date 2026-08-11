@@ -19,6 +19,9 @@ model Product {
   categoryId         String
   category           Category  @relation(fields: [categoryId], references: [id])
   description        String?
+  descriptionEn      String?
+  nameEn             String?
+  lengthLabel        String?   // "85 cm" gibi serbest metin — editoryal şablonun "Boy" alanı, manuel girilir
   fabricInfo         String?
   colorLabel         String?   // tsoft'ta her renk ayrı bir ürün/ProductCode'dur — bu ürünün kendi rengi
   tsoftRelatedIds    String[]  @default([]) // RelatedProductsIds1 — kardeş renk varyantlarının tsoftProductId'leri

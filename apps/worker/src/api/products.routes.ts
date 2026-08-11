@@ -89,6 +89,9 @@ productsRouter.get(
 
 const productUpdateSchema = z.object({
   description: z.string().nullable().optional(),
+  descriptionEn: z.string().nullable().optional(),
+  nameEn: z.string().nullable().optional(),
+  lengthLabel: z.string().nullable().optional(),
   fabricInfo: z.string().nullable().optional(),
   manualSortWeight: z.number().int().nullable().optional(),
   salesScore: z.number().nullable().optional(),

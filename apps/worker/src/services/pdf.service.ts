@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { chromium } from 'playwright';
 import { logger } from '../utils/logger';
-import { markCatalogFailed, markCatalogGenerating, markCatalogReady } from './catalog.service';
+import { getCatalogOrientation, markCatalogFailed, markCatalogGenerating, markCatalogReady } from './catalog.service';
 
 const OUTPUT_DIR = path.join(__dirname, '..', '..', 'generated-pdfs');
 
@@ -28,13 +28,21 @@ export async function generateCatalogPdf(catalogId: string): Promise<string> {
 
     const browser = await chromium.launch();
     try {
+      const orientation = await getCatalogOrientation(catalogId);
+      const landscape = orientation === 'landscape';
+
       const page = await browser.newPage();
       const url = `${webUrl()}/catalog-print/${catalogId}`;
       logger.info(`[pdf] render başlıyor: ${url}`);
       await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
       await page.pdf({
         path: filePath,
-        format: 'A4',
+        // format:'A4' yerine açık width/height — .pdf-page'in şablona göre 210x297mm
+        // (dikey) veya 297x210mm (yatay, bkz. print-base.css --page-width/--page-height)
+        // render ettiği boyutla birebir eşleşmesi gerekiyor.
+        width: landscape ? '297mm' : '210mm',
+        height: landscape ? '210mm' : '297mm',
+        preferCSSPageSize: false,
         printBackground: true,
         margin: { top: '0', bottom: '0', left: '0', right: '0' },
       });
