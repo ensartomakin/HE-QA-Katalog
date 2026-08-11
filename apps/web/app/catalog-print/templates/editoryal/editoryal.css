@@ -213,16 +213,23 @@
   display: block;
 }
 
-.ed-thumb-row {
+/* Renk varyantı küçük görselleri — sabit boyutlu kutular + flex-wrap: sayfa düzeni
+   varyant sayısına göre kendiliğinden değişir (az varyant = tek satır, çok varyant =
+   birden çok satır — kaynak InDesign taslağındaki s.4-7 davranışıyla aynı). max-height
+   aşırı varyant sayısında ana görseli fazla küçültmesin diye bir üst sınır koyuyor. */
+.ed-thumb-grid {
   flex-shrink: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 2.5mm;
-  height: 30mm;
+  max-height: 62mm;
+  overflow: hidden;
 }
 
 .ed-thumb-wrap {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
+  width: 26mm;
+  height: 26mm;
   overflow: hidden;
   background: #f4f3f0;
   display: flex;
