@@ -21,6 +21,79 @@ function EdBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
   return <span>HE-QA</span>;
 }
 
+function EdSizeLine({ label, sizes, lengthLabel, lengthLabelText }: { label: string; sizes: string[]; lengthLabel: string; lengthLabelText: string | null }) {
+  if (sizes.length === 0 && !lengthLabelText) return null;
+  return (
+    <div className="ed-size-line">
+      {sizes.length > 0 && (
+        <span>
+          <strong>{label}:</strong> {sizes.join(' ')}
+        </span>
+      )}
+      {lengthLabelText && (
+        <span>
+          <strong>{lengthLabel}:</strong> {lengthLabelText}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function EdLangPanel({
+  heroImage,
+  variantThumbs,
+  productName,
+  altName,
+  description,
+  fabricLabel,
+  fabricInfo,
+  sizeLabel,
+  sizes,
+  lengthLabel,
+  lengthLabelText,
+}: {
+  heroImage: { url: string } | undefined;
+  variantThumbs: { colorLabel: string; imageUrl: string | null }[];
+  productName: string;
+  altName: string;
+  description: string | null;
+  fabricLabel: string;
+  fabricInfo: string | null;
+  sizeLabel: string;
+  sizes: string[];
+  lengthLabel: string;
+  lengthLabelText: string | null;
+}) {
+  return (
+    <div className="ed-lang-panel">
+      <div className="ed-media-row">
+        <div className="ed-hero-wrap">{heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={altName} />}</div>
+        {variantThumbs.length > 0 && (
+          <div className="ed-thumb-grid">
+            {variantThumbs.map((v) => (
+              <div key={v.colorLabel} className="ed-thumb-wrap">
+                <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="ed-rule" />
+      <div className="ed-panel-name">{productName}</div>
+      {description && <p className="ed-panel-description">{description}</p>}
+      <div className="ed-panel-meta">
+        <EdSizeLine label={sizeLabel} sizes={sizes} lengthLabel={lengthLabel} lengthLabelText={lengthLabelText} />
+        {fabricInfo && (
+          <div className="ed-fabric-line">
+            <strong>{fabricLabel}:</strong> {fabricInfo}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function EdProductPage({
   item,
   currency,
@@ -35,11 +108,12 @@ function EdProductPage({
   pageNumber: number;
 }) {
   const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Küçük görseller: ana ürünün DİĞER renk varyantları (kaynak InDesign taslağındaki
-  // s.4-7 gibi) — .ed-thumb-grid flex-wrap olduğu için sayfa düzeni varyant sayısına
-  // göre otomatik değişir (çok varyant = çok satır, sıfır varyant = görsel alanı yok,
-  // ana görsel tüm alanı kaplar; bkz. editoryal.css).
-  const colorVariantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
+  // Küçük görseller: ana ürünün DİĞER renk varyantları — kaynak InDesign taslağındaki
+  // s.4-7'de TR ve EN panelleri AYNI foto setini kullanıyor (T-Soft'tan renk varyantı
+  // başına yalnızca 1 görsel geliyor — taslaktaki gibi dile özel çekim seti yok, bu
+  // yüzden iki panel de aynı hero+varyant görsellerini paylaşıyor).
+  const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
+  const sizeLabels = item.product.sizes.map((s) => s.label);
 
   return (
     <div className="pdf-page ed-product-page">
@@ -49,91 +123,42 @@ function EdProductPage({
         </div>
 
         <div className="ed-product-layout">
-          <div className="ed-media-col">
-            <div className="ed-hero-wrap">
-              {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
-            </div>
-            {colorVariantThumbs.length > 0 && (
-              <div className="ed-thumb-grid">
-                {colorVariantThumbs.map((v) => (
-                  <div key={v.colorLabel} className="ed-thumb-wrap">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="ed-info-col">
-            <div className="ed-name-block">
-              <div className="ed-product-name">{item.product.name}</div>
-              {item.product.nameEn && <div className="ed-product-name-en">{item.product.nameEn}</div>}
-            </div>
-
-            <div className="ed-rule" />
-
-            {(item.product.description || item.product.descriptionEn) && (
-              <div className="ed-description-block">
-                {item.product.description && <p className="ed-description">{item.product.description}</p>}
-                {item.product.descriptionEn && <p className="ed-description-en">{item.product.descriptionEn}</p>}
-              </div>
-            )}
-
-            <div className="ed-meta-row">
-              <div className="ed-meta-block">
-                <div className="ed-label">Beden / Size</div>
-                <div className="ed-size-list">
-                  {item.product.sizes.length > 0 ? (
-                    item.product.sizes.map((s) => (
-                      <span key={s.id} className="ed-size-box">
-                        {s.label}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="ed-empty">—</span>
-                  )}
-                </div>
-              </div>
-              {item.product.lengthLabel && (
-                <div className="ed-meta-block">
-                  <div className="ed-label">Boy / Length</div>
-                  <div className="ed-length-value">{item.product.lengthLabel}</div>
-                </div>
-              )}
-              {item.product.fabricInfo && (
-                <div className="ed-meta-block ed-meta-block-fabric">
-                  <div className="ed-label">Kumaş / Fabric</div>
-                  <div className="ed-fabric-value">{item.product.fabricInfo}</div>
-                </div>
-              )}
-            </div>
-
-            <div className="ed-bottom-row">
-              <div className="ed-colors-block">
-                <div className="ed-label">Renkler</div>
-                <div className="ed-color-dots">
-                  {item.product.colors.length > 0 ? (
-                    item.product.colors.map((c) => (
-                      <span key={c.id} className="ed-color-dot" style={{ background: c.hexPreview ?? '#d8d2c2' }} title={c.name} />
-                    ))
-                  ) : (
-                    <span className="ed-empty">—</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="ed-price-block">
-                <div className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</div>
-                <div className="ed-price-row">
-                  <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
-                  <span className="ed-price-discount">%{Math.round(discountPct)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EdLangPanel
+            heroImage={heroImage}
+            variantThumbs={variantThumbs}
+            productName={item.product.name}
+            altName={item.product.name}
+            description={item.product.description}
+            fabricLabel="Kumaş"
+            fabricInfo={item.product.fabricInfo}
+            sizeLabel="Beden"
+            sizes={sizeLabels}
+            lengthLabel="Boy"
+            lengthLabelText={item.product.lengthLabel}
+          />
+          <EdLangPanel
+            heroImage={heroImage}
+            variantThumbs={variantThumbs}
+            productName={item.product.nameEn || item.product.name}
+            altName={item.product.nameEn || item.product.name}
+            description={item.product.descriptionEn}
+            fabricLabel="Fabric"
+            fabricInfo={item.product.fabricInfo}
+            sizeLabel="Size"
+            sizes={sizeLabels}
+            lengthLabel="Lenght"
+            lengthLabelText={item.product.lengthLabel}
+          />
         </div>
 
-        <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+        <div className="ed-page-footer">
+          <div className="ed-price-line">
+            <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
+            <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
+            <span className="ed-price-discount">%{Math.round(discountPct)}</span>
+          </div>
+          <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+        </div>
       </div>
     </div>
   );

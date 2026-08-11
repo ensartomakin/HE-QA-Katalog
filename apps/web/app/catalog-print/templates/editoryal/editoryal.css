@@ -179,26 +179,37 @@
   font-style: italic;
 }
 
-/* --- Ürün sayfası --- */
+/* --- Ürün sayfası ---
+   Kaynak taslakta (s.4-7) sayfa iki eşit panele bölünür: solda Türkçe, sağda İngilizce
+   — her panel kendi görsel ızgarasını (hero + varyant küçük görselleri), ürün adını,
+   açıklamasını ve beden/boy bilgisini taşır. Fiyat, kaynakta yok; kullanıcı isteğiyle
+   sayfa altında tek, sade bir satır olarak ekleniyor. */
 .ed-product-layout {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 8mm;
+  gap: 10mm;
   margin-top: 2mm;
 }
 
-.ed-media-col {
-  flex: 1.35;
+.ed-lang-panel {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3mm;
+  overflow: hidden;
+}
+
+.ed-media-row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 2mm;
 }
 
 .ed-hero-wrap {
-  flex: 1;
-  min-height: 0;
+  flex: 1.3;
+  min-width: 0;
   overflow: hidden;
   background: #f4f3f0;
   display: flex;
@@ -213,23 +224,19 @@
   display: block;
 }
 
-/* Renk varyantı küçük görselleri — sabit boyutlu kutular + flex-wrap: sayfa düzeni
-   varyant sayısına göre kendiliğinden değişir (az varyant = tek satır, çok varyant =
-   birden çok satır — kaynak InDesign taslağındaki s.4-7 davranışıyla aynı). max-height
-   aşırı varyant sayısında ana görseli fazla küçültmesin diye bir üst sınır koyuyor. */
+/* Renk varyantı küçük görselleri — hero'nun yanında 2 sütunlu ızgara (kaynak
+   taslaktaki s.4-7 düzeniyle aynı). Varyant sayısına göre satır sayısı (ve dolayısıyla
+   her hücrenin yüksekliği) otomatik değişir; grid-auto-rows ile hücreler eşit paylaşır. */
 .ed-thumb-grid {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2.5mm;
-  max-height: 62mm;
-  overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 2mm;
 }
 
 .ed-thumb-wrap {
-  flex: 0 0 auto;
-  width: 26mm;
-  height: 26mm;
   overflow: hidden;
   background: #f4f3f0;
   display: flex;
@@ -244,150 +251,89 @@
   display: block;
 }
 
-.ed-info-col {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
+.ed-lang-panel .ed-rule {
+  width: 14mm;
+  margin: 3mm 0 2mm;
+}
+
+.ed-panel-name {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin-bottom: 1.5mm;
+}
+
+.ed-panel-description {
+  flex-shrink: 0;
+  font-size: 8.5px;
+  line-height: 1.5;
+  margin: 0 0 2mm;
+  /* Gerçek ürün açıklamaları çok uzun olabiliyor (bakım talimatı, ölçü tablosu vb.
+     tek paragrafa gömülü) — sayfa düzenini bozmaması için satır sayısı sabitleniyor. */
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.ed-name-block {
+.ed-panel-meta {
   flex-shrink: 0;
-}
-
-.ed-product-name {
-  font-size: 20px;
-  font-weight: 900;
-  text-transform: uppercase;
-  line-height: 1.15;
-}
-
-.ed-product-name-en {
-  font-family: var(--ed-serif);
-  font-style: italic;
-  font-size: 12px;
-  color: var(--ed-muted);
-  margin-top: 1mm;
-}
-
-.ed-description-block {
-  flex-shrink: 0;
-  margin-bottom: 3mm;
-}
-
-.ed-description {
-  font-size: 9px;
-  line-height: 1.5;
-  margin: 0 0 2mm;
-}
-
-.ed-description-en {
-  font-family: var(--ed-serif);
-  font-style: italic;
-  font-size: 9px;
-  line-height: 1.5;
-  color: var(--ed-muted);
-  margin: 0;
-}
-
-.ed-meta-row {
-  flex-shrink: 0;
-  display: flex;
-  gap: 5mm;
-  margin-bottom: 3mm;
-}
-
-.ed-meta-block {
-  flex: 1;
-  min-width: 0;
-}
-
-.ed-meta-block-fabric {
-  flex: 1.4;
-}
-
-.ed-size-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1mm;
-}
-
-.ed-size-box {
-  font-size: 8px;
-  border: 1px solid var(--ed-border);
-  padding: 0.8mm 2mm;
-  height: fit-content;
-}
-
-.ed-length-value,
-.ed-fabric-value {
-  font-size: 9px;
-  line-height: 1.4;
-}
-
-.ed-bottom-row {
   margin-top: auto;
+}
+
+.ed-size-line,
+.ed-fabric-line {
+  font-size: 8.5px;
+  line-height: 1.5;
+}
+
+.ed-size-line span + span {
+  margin-left: 4mm;
+}
+
+.ed-size-line strong,
+.ed-fabric-line strong {
+  font-weight: 700;
+}
+
+.ed-page-footer {
+  position: relative;
   flex-shrink: 0;
+  margin-top: 3mm;
+}
+
+.ed-page-footer .ed-page-number {
+  margin-top: 0;
+}
+
+.ed-price-line {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 4mm;
-  padding-top: 3mm;
-  border-top: 1px solid var(--ed-border);
-}
-
-.ed-colors-block {
-  min-width: 0;
-}
-
-.ed-color-dots {
-  display: inline-flex;
-  gap: 1.5mm;
-  flex-wrap: wrap;
-}
-
-.ed-color-dot {
-  width: 3.5mm;
-  height: 3.5mm;
-  border-radius: 50%;
-  border: 1px solid var(--ed-border);
-  flex-shrink: 0;
-}
-
-.ed-price-block {
-  text-align: right;
-  flex-shrink: 0;
+  align-items: baseline;
+  gap: 2.5mm;
 }
 
 .ed-price-original {
   font-size: 8px;
   color: var(--ed-muted);
   text-decoration: line-through;
-  margin-bottom: 0.5mm;
-}
-
-.ed-price-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 1.5mm;
 }
 
 .ed-price-value {
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--ed-red);
 }
 
 .ed-price-discount {
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
-  border: 1px solid var(--ed-red);
   color: var(--ed-red);
-  padding: 0.6mm 1.6mm;
-  white-space: nowrap;
 }
 
 /* --- Hakkımızda / İletişim sayfası --- */
