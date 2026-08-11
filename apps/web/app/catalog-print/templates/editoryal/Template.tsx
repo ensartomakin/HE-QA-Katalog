@@ -86,6 +86,12 @@ function EdProductPage({
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
 
+  // Kaynak taslakta (s.4-7) varyant sayısı düşükken (toplam 3-4 görsel) tüm görseller
+  // eşit boyutlu tek sırada gösteriliyor (s.7); daha fazla varyantta (s.4) büyük bir
+  // hero görsel + küçük görsellerden oluşan bir ızgara kullanılıyor.
+  const totalImageCount = (heroImage ? 1 : 0) + variantThumbs.length;
+  const useEqualRow = totalImageCount > 0 && totalImageCount <= 4;
+
   return (
     <div className="pdf-page ed-product-page">
       <div className="ed-page-frame">
@@ -94,11 +100,24 @@ function EdProductPage({
         </div>
 
         <div className="ed-product-layout">
-          <div className="ed-media-row">
-            <div className="ed-hero-wrap">
-              {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+          {useEqualRow ? (
+            <div className="ed-media-row ed-media-row--equal">
+              {heroImage && (
+                <div className="ed-media-box">
+                  <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />
+                </div>
+              )}
+              {variantThumbs.map((v) => (
+                <div key={v.colorLabel} className="ed-media-box">
+                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                </div>
+              ))}
             </div>
-            {variantThumbs.length > 0 && (
+          ) : (
+            <div className="ed-media-row">
+              <div className="ed-hero-wrap">
+                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+              </div>
               <div className="ed-thumb-grid">
                 {variantThumbs.map((v) => (
                   <div key={v.colorLabel} className="ed-thumb-wrap">
@@ -106,8 +125,8 @@ function EdProductPage({
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="ed-info-col">
             <div className="ed-rule" />

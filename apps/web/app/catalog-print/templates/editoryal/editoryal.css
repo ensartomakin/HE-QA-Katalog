@@ -209,6 +209,29 @@
   margin-top: 4mm;
 }
 
+/* Az varyantlı ürünlerde (toplam ≤4 görsel) tüm görseller eşit boyutlu tek sırada —
+   kaynak taslaktaki s.7 düzeniyle aynı (bkz. Template.tsx useEqualRow). */
+.ed-media-row--equal {
+  gap: 2.5mm;
+}
+
+.ed-media-box {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  background: #f4f3f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-media-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
 .ed-hero-wrap {
   flex: 1.3;
   min-width: 0;
