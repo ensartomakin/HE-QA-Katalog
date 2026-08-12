@@ -110,8 +110,8 @@
 /* Ürün/hakkımızda sayfalarında logo, kaynak taslaktaki gibi sayfa altında sol köşede,
    küçük boyutta yer alır (bkz. ed-footer-brand). */
 .ed-brand-logo--footer {
-  max-height: 5mm;
-  max-width: 24mm;
+  max-height: 7.5mm;
+  max-width: 36mm;
   margin: 0;
 }
 
@@ -302,7 +302,7 @@
 
 .ed-panel-name {
   flex-shrink: 0;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
@@ -311,7 +311,7 @@
 
 .ed-panel-description {
   flex-shrink: 0;
-  font-size: 9.5px;
+  font-size: 11.5px;
   line-height: 1.6;
   margin: 0 0 3mm;
   /* Gerçek ürün açıklamaları çok uzun olabiliyor (bakım talimatı, ölçü tablosu vb.
@@ -334,12 +334,33 @@
   margin-bottom: 1mm;
 }
 
+.ed-size-line {
+  font-size: 11.5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .ed-size-line span + span {
   margin-left: 4mm;
 }
 
 .ed-size-line strong,
 .ed-fabric-line strong {
+  font-weight: 700;
+}
+
+.ed-size-boxes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1mm;
+  margin-left: 1.5mm;
+}
+
+.ed-size-box {
+  display: inline-block;
+  border: 1px solid var(--ed-ink);
+  padding: 0.5mm 1.8mm;
   font-weight: 700;
 }
 

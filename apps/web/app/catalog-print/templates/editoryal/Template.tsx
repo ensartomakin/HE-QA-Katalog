@@ -109,7 +109,14 @@ function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelTe
     <div className="ed-size-line">
       {sizes.length > 0 && (
         <span>
-          <strong>Beden:</strong> {sizes.join(' ')}
+          <strong>Beden:</strong>
+          <span className="ed-size-boxes">
+            {sizes.map((s) => (
+              <span key={s} className="ed-size-box">
+                {s}
+              </span>
+            ))}
+          </span>
         </span>
       )}
       {lengthLabelText && (
