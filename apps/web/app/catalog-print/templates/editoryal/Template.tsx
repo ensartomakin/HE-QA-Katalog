@@ -86,13 +86,29 @@ function EdProductPage({
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
 
+  const totalImageCount = (heroImage ? 1 : 0) + variantThumbs.length;
+  // Kaynak taslaktaki (s.21 "Denim Kimono") 3 varyantlı ürün örneği: her zaman 1 büyük
+  // hero solda + kalan 2 görsel onun yanında alt alta iki kutu halinde — sabit bir kural.
+  const useHeroPlusStack = Boolean(heroImage) && variantThumbs.length === 2;
+  // Kaynak taslaktaki (s.10 "Parçalı Modal Sweat") 5 varyantlı ürün örneği: hero solda +
+  // sonraki 2 varyant yan yana bir sütunda alt alta + kalan 2 varyant tekil büyük sütun
+  // olarak sağda — sabit bir kural.
+  const useFiveLayout = Boolean(heroImage) && variantThumbs.length === 4;
+  // Kaynak taslaktaki (s.11 "Kalın Çizgili Sweat") 6 varyantlı ürün örneği: hero solda +
+  // sonraki 2 varyant bir sütunda alt alta + bir sonraki 2 varyant başka bir sütunda alt
+  // alta + son varyant tekil büyük sütun olarak sağda — sabit bir kural.
+  const useSixLayout = Boolean(heroImage) && variantThumbs.length === 5;
+  // Kaynak taslaktaki (s.19 "Bisiklet Yaka Tişört") 8 varyantlı ürün örneği: hero solda +
+  // ortada 3 ayrı sütun (her biri 2 varyant alt alta) + son varyant tekil büyük sütun
+  // olarak sağda — sabit bir kural.
+  const useEightLayout = Boolean(heroImage) && variantThumbs.length === 7;
   // Kaynak taslaktaki çok sayıda örnek sayfa (s.4-26) incelendi: 2-6 toplam görselde
   // hepsi büyük ve eşit boyutlu tek sırada (bazen aynı rengin 2 farklı çekimi küçük bir
   // çift olarak gruplanıyor — bizim veri modelimizde renk başına tek fotoğraf olduğu
   // için bu çift-gruplama birebir taklit edilemiyor, o yüzden sadeleştirildi). 7+ toplam
   // görselde büyük hero + küçük görsel ızgarası kullanılıyor (s.4'teki 9 görsellik örnek).
-  const totalImageCount = (heroImage ? 1 : 0) + variantThumbs.length;
-  const useEqualRow = totalImageCount > 0 && totalImageCount <= 6;
+  const useEqualRow =
+    !useHeroPlusStack && !useFiveLayout && !useSixLayout && !useEightLayout && totalImageCount > 0 && totalImageCount <= 6;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -102,7 +118,95 @@ function EdProductPage({
         </div>
 
         <div className="ed-product-layout">
-          {useEqualRow ? (
+          {useEightLayout ? (
+            <div className="ed-media-row ed-media-row--eight">
+              <div className="ed-media-box">
+                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(0, 2).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(2, 4).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(4, 6).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              {variantThumbs.slice(6, 7).map((v) => (
+                <div key={v.colorLabel} className="ed-media-box">
+                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                </div>
+              ))}
+            </div>
+          ) : useSixLayout ? (
+            <div className="ed-media-row ed-media-row--six">
+              <div className="ed-media-box">
+                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(0, 2).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(2, 4).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              {variantThumbs.slice(4, 5).map((v) => (
+                <div key={v.colorLabel} className="ed-media-box">
+                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                </div>
+              ))}
+            </div>
+          ) : useFiveLayout ? (
+            <div className="ed-media-row ed-media-row--five">
+              <div className="ed-media-box">
+                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.slice(0, 2).map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+              {variantThumbs.slice(2, 4).map((v) => (
+                <div key={v.colorLabel} className="ed-media-box">
+                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                </div>
+              ))}
+            </div>
+          ) : useHeroPlusStack ? (
+            <div className="ed-media-row ed-media-row--hero-stack">
+              <div className="ed-hero-wrap">
+                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+              </div>
+              <div className="ed-stack-col">
+                {variantThumbs.map((v) => (
+                  <div key={v.colorLabel} className="ed-media-box">
+                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : useEqualRow ? (
             <div className="ed-media-row ed-media-row--equal">
               {heroImage && (
                 <div className="ed-media-box">
@@ -120,7 +224,9 @@ function EdProductPage({
               <div className="ed-hero-wrap">
                 {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
               </div>
-              <div className="ed-thumb-grid">
+              {/* Kaynak taslaktaki (s.15 "Etek Ucu Oval Sweatshirt") 7 varyantlı ürün
+                  örneği: hero solda + kalan 6 görsel 3 sütun x 2 satır ızgara halinde. */}
+              <div className={`ed-thumb-grid${variantThumbs.length === 6 ? ' ed-thumb-grid--three-col' : ''}`}>
                 {variantThumbs.map((v) => (
                   <div key={v.colorLabel} className="ed-thumb-wrap">
                     <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
