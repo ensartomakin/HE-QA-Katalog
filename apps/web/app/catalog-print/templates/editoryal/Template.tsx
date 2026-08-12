@@ -68,13 +68,16 @@ function buildMediaItems(item: CatalogItem): MediaItem[] {
   // getCatalogDetail) ve önizlemedeki sürükle-bırak ile kaydedilen variantOrder'a göre
   // sıralanmıştır. Bu sayede ana görsel de diğer renk varyantlarıyla birlikte, kullanıcının
   // belirlediği sırayla değiştirilebilir; sabit olarak "ürünün kendi rengi" değildir.
+  // Editoryal şablonunda küçük/ızgara hücreleri bile baskıda gözle görülür büyüklükte
+  // (he-qa-website'teki gerçek ikon boyutlu thumbnail'lerin aksine) — bu yüzden hepsi
+  // en yüksek çözünürlük varyantıyla ('B', ~3072x4578) isteniyor, yalnızca hero değil.
   const gallery = item.colorVariants.filter((c) => c.imageUrl);
   if (gallery.length > 0) {
     return gallery.map((v, i) => ({
       key: v.colorLabel,
       url: v.imageUrl as string,
       alt: i === 0 ? item.product.name : v.colorLabel,
-      size: i === 0 ? 'B' : 'O',
+      size: 'B',
     }));
   }
 
@@ -91,10 +94,11 @@ function chunkMediaItems(items: MediaItem[]): MediaItem[][] {
   return chunks;
 }
 
-function EdBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
+function EdBrandMark({ brandLogoUrl, variant }: { brandLogoUrl: string | null; variant?: 'footer' }) {
+  const className = variant === 'footer' ? 'ed-brand-logo ed-brand-logo--footer' : 'ed-brand-logo';
   if (brandLogoUrl) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={brandLogoUrl} alt="Marka logosu" className="ed-brand-logo" />;
+    return <img src={brandLogoUrl} alt="Marka logosu" className={className} />;
   }
   return <span>HE-QA</span>;
 }
@@ -268,10 +272,6 @@ function EdProductPage({
   return (
     <div className="pdf-page ed-product-page">
       <div className="ed-page-frame">
-        <div className="ed-page-header">
-          <EdBrandMark brandLogoUrl={brandLogoUrl} />
-        </div>
-
         <div className="ed-product-layout">
           <EdMediaLayout item={item} chunk={mediaChunk} />
 
@@ -291,6 +291,9 @@ function EdProductPage({
         </div>
 
         <div className="ed-page-footer">
+          <div className="ed-footer-brand">
+            <EdBrandMark brandLogoUrl={brandLogoUrl} variant="footer" />
+          </div>
           <div className="ed-price-line">
             <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
             <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
@@ -307,10 +310,6 @@ function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null
   return (
     <div className="pdf-page ed-about-page">
       <div className="ed-page-frame">
-        <div className="ed-page-header">
-          <EdBrandMark brandLogoUrl={brandLogoUrl} />
-        </div>
-
         <div className="ed-about-layout">
           <div className="ed-about-col">
             <div className="ed-about-heading">HAKKIMIZDA</div>
@@ -340,7 +339,12 @@ function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null
           </div>
         </div>
 
-        <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+        <div className="ed-page-footer">
+          <div className="ed-footer-brand">
+            <EdBrandMark brandLogoUrl={brandLogoUrl} variant="footer" />
+          </div>
+          <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+        </div>
       </div>
     </div>
   );
