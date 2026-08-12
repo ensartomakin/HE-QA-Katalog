@@ -295,14 +295,14 @@
 }
 
 .ed-info-col .ed-rule {
-  width: 16mm;
+  width: 32mm;
   height: 2.5px;
-  margin: 0 0 3mm;
+  margin: 3mm 0;
 }
 
 .ed-panel-name {
   flex-shrink: 0;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
