@@ -8,6 +8,8 @@ import {
   listCatalogs,
   updateCatalogCoverImage,
   updateCatalogItemsOrder,
+  updateCatalogItemVariantOrder,
+  updateCatalogItemFocalPoint,
 } from '../services/catalog.service';
 import { generateCatalogPdf, getCatalogPdfPath } from '../services/pdf.service';
 import { logger } from '../utils/logger';
@@ -102,6 +104,51 @@ catalogsRouter.put(
     }
     try {
       await updateCatalogItemsOrder(req.params.id, parsed.data.itemIds);
+      res.json({ ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(400).json({ error: message });
+    }
+  })
+);
+
+const variantOrderSchema = z.object({ itemId: z.string().min(1), colorLabels: z.array(z.string()).min(1) });
+
+catalogsRouter.put(
+  '/:id/variant-order',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = variantOrderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      await updateCatalogItemVariantOrder(req.params.id, parsed.data.itemId, parsed.data.colorLabels);
+      res.json({ ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.status(400).json({ error: message });
+    }
+  })
+);
+
+const focalPointSchema = z.object({
+  itemId: z.string().min(1),
+  imageUrl: z.string().min(1),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+});
+
+catalogsRouter.put(
+  '/:id/focal-point',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = focalPointSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      await updateCatalogItemFocalPoint(req.params.id, parsed.data.itemId, parsed.data.imageUrl, parsed.data.x, parsed.data.y);
       res.json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

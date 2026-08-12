@@ -3,6 +3,16 @@ import type { CatalogDetail, CatalogItem } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
 import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
 
+// Görseller object-fit:cover ile kutuya kırpılıyor (bkz. editoryal.css) — varsayılan odak
+// noktası üstte tutuluyor ki manken fotoğraflarında kafa kırpılmasın. Kullanıcı önizlemede
+// bu noktayı görsel bazında değiştirebilir (bkz. CatalogItem.imageFocalPoints).
+const DEFAULT_FOCAL_POINT = { x: 0.5, y: 0.15 };
+
+function focalPointStyle(item: CatalogItem, imageUrl: string): { objectPosition: string } {
+  const focal = item.imageFocalPoints?.[imageUrl] ?? DEFAULT_FOCAL_POINT;
+  return { objectPosition: `${focal.x * 100}% ${focal.y * 100}%` };
+}
+
 const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   TRY: 'TL',
   USD: '$',
@@ -121,87 +131,151 @@ function EdProductPage({
           {useEightLayout ? (
             <div className="ed-media-row ed-media-row--eight">
               <div className="ed-media-box">
-                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+                {heroImage && (
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
+                )}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(0, 2).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(2, 4).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(4, 6).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               {variantThumbs.slice(6, 7).map((v) => (
                 <div key={v.colorLabel} className="ed-media-box">
-                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  <img
+                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                    alt={v.colorLabel}
+                    style={focalPointStyle(item, v.imageUrl as string)}
+                  />
                 </div>
               ))}
             </div>
           ) : useSixLayout ? (
             <div className="ed-media-row ed-media-row--six">
               <div className="ed-media-box">
-                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+                {heroImage && (
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
+                )}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(0, 2).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(2, 4).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               {variantThumbs.slice(4, 5).map((v) => (
                 <div key={v.colorLabel} className="ed-media-box">
-                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  <img
+                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                    alt={v.colorLabel}
+                    style={focalPointStyle(item, v.imageUrl as string)}
+                  />
                 </div>
               ))}
             </div>
           ) : useFiveLayout ? (
             <div className="ed-media-row ed-media-row--five">
               <div className="ed-media-box">
-                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+                {heroImage && (
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
+                )}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.slice(0, 2).map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
               {variantThumbs.slice(2, 4).map((v) => (
                 <div key={v.colorLabel} className="ed-media-box">
-                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  <img
+                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                    alt={v.colorLabel}
+                    style={focalPointStyle(item, v.imageUrl as string)}
+                  />
                 </div>
               ))}
             </div>
           ) : useHeroPlusStack ? (
             <div className="ed-media-row ed-media-row--hero-stack">
               <div className="ed-hero-wrap">
-                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+                {heroImage && (
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
+                )}
               </div>
               <div className="ed-stack-col">
                 {variantThumbs.map((v) => (
                   <div key={v.colorLabel} className="ed-media-box">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>
@@ -210,26 +284,44 @@ function EdProductPage({
             <div className="ed-media-row ed-media-row--equal">
               {heroImage && (
                 <div className="ed-media-box">
-                  <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
                 </div>
               )}
               {variantThumbs.map((v) => (
                 <div key={v.colorLabel} className="ed-media-box">
-                  <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                  <img
+                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                    alt={v.colorLabel}
+                    style={focalPointStyle(item, v.imageUrl as string)}
+                  />
                 </div>
               ))}
             </div>
           ) : (
             <div className="ed-media-row">
               <div className="ed-hero-wrap">
-                {heroImage && <img src={upsizeTsoftImageUrl(heroImage.url, 'B')} alt={item.product.name} />}
+                {heroImage && (
+                  <img
+                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
+                    alt={item.product.name}
+                    style={focalPointStyle(item, heroImage.url)}
+                  />
+                )}
               </div>
               {/* Kaynak taslaktaki (s.15 "Etek Ucu Oval Sweatshirt") 7 varyantlı ürün
                   örneği: hero solda + kalan 6 görsel 3 sütun x 2 satır ızgara halinde. */}
               <div className={`ed-thumb-grid${variantThumbs.length === 6 ? ' ed-thumb-grid--three-col' : ''}`}>
                 {variantThumbs.map((v) => (
                   <div key={v.colorLabel} className="ed-thumb-wrap">
-                    <img src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')} alt={v.colorLabel} />
+                    <img
+                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
+                      alt={v.colorLabel}
+                      style={focalPointStyle(item, v.imageUrl as string)}
+                    />
                   </div>
                 ))}
               </div>

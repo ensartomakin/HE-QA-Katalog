@@ -189,7 +189,6 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  margin-top: 2mm;
 }
 
 .ed-media-row {
@@ -206,7 +205,6 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin-top: 4mm;
 }
 
 /* Az varyantlı ürünlerde (toplam ≤4 görsel) tüm görseller eşit boyutlu tek sırada —
@@ -228,7 +226,7 @@
 .ed-media-box img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
 }
 
@@ -261,7 +259,7 @@
 .ed-hero-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
 }
 
@@ -294,7 +292,7 @@
 .ed-thumb-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
 }
 

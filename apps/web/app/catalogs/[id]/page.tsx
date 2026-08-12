@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TopNav } from '@/components/TopNav';
 import type { CatalogDetail } from '@/lib/types';
+import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
+
+// Şablonlarda kullanılan varsayılanla aynı (bkz. editoryal Template.tsx DEFAULT_FOCAL_POINT) —
+// manken fotoğraflarında kafa kırpılmasın diye üstte tutuluyor.
+const DEFAULT_FOCAL_POINT = { x: 0.5, y: 0.15 };
+
+type FocalEditorTarget = { itemId: string; imageUrl: string; label: string };
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -27,6 +34,10 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
   const [previewTick, setPreviewTick] = useState(0);
   const [itemOrder, setItemOrder] = useState<string[]>([]);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const [variantOrderByItem, setVariantOrderByItem] = useState<Record<string, string[]>>({});
+  const [dragVariantLabel, setDragVariantLabel] = useState<string | null>(null);
+  const [focalEditor, setFocalEditor] = useState<FocalEditorTarget | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['catalog', params.id],
@@ -42,6 +53,24 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
   const saveItemOrder = useMutation({
     mutationFn: (itemIds: string[]) =>
       fetchJson(`/api/catalogs/${params.id}/sort-order`, { method: 'PUT', body: JSON.stringify({ itemIds }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalog', params.id] });
+      setPreviewTick((t) => t + 1);
+    },
+  });
+
+  const saveVariantOrder = useMutation({
+    mutationFn: ({ itemId, colorLabels }: { itemId: string; colorLabels: string[] }) =>
+      fetchJson(`/api/catalogs/${params.id}/variant-order`, { method: 'PUT', body: JSON.stringify({ itemId, colorLabels }) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['catalog', params.id] });
+      setPreviewTick((t) => t + 1);
+    },
+  });
+
+  const saveFocalPoint = useMutation({
+    mutationFn: ({ itemId, imageUrl, x, y }: { itemId: string; imageUrl: string; x: number; y: number }) =>
+      fetchJson(`/api/catalogs/${params.id}/focal-point`, { method: 'PUT', body: JSON.stringify({ itemId, imageUrl, x, y }) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['catalog', params.id] });
       setPreviewTick((t) => t + 1);
@@ -68,6 +97,17 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
     if (catalog) setItemOrder(catalog.items.map((item) => item.id));
   }, [catalog]);
 
+  useEffect(() => {
+    if (!catalog) return;
+    setVariantOrderByItem((prev) => {
+      const next = { ...prev };
+      for (const item of catalog.items) {
+        next[item.id] = item.colorVariants.map((v) => v.colorLabel);
+      }
+      return next;
+    });
+  }, [catalog]);
+
   const itemById = new Map(catalog?.items.map((item) => [item.id, item]) ?? []);
   const orderedItems = itemOrder.map((id) => itemById.get(id)).filter((item): item is CatalogDetail['items'][number] => Boolean(item));
 
@@ -81,6 +121,27 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
       return next;
     });
     setDragId(null);
+  }
+
+  function handleVariantDrop(itemId: string, targetLabel: string) {
+    if (!dragVariantLabel || dragVariantLabel === targetLabel) return;
+    setVariantOrderByItem((prev) => {
+      const current = prev[itemId] ?? [];
+      const next = current.filter((label) => label !== dragVariantLabel);
+      const targetIndex = next.indexOf(targetLabel);
+      next.splice(targetIndex, 0, dragVariantLabel);
+      saveVariantOrder.mutate({ itemId, colorLabels: next });
+      return { ...prev, [itemId]: next };
+    });
+    setDragVariantLabel(null);
+  }
+
+  function handleFocalPick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!focalEditor) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
+    saveFocalPoint.mutate({ itemId: focalEditor.itemId, imageUrl: focalEditor.imageUrl, x, y });
   }
 
   function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -200,7 +261,9 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
               <div>
                 <h2 className="text-[21px]">Önizleme</h2>
                 <p className="text-[14px] text-[var(--color-bark)]">
-                  {saveItemOrder.isPending ? 'Sıra kaydediliyor…' : 'Sırayı değiştirmek için ürünleri sürükleyip bırakın.'}
+                  {saveItemOrder.isPending || saveVariantOrder.isPending || saveFocalPoint.isPending
+                    ? 'Kaydediliyor…'
+                    : 'Ürünleri sürükleyerek sırasını, "Görseller"i açıp galeri sırasını ve her fotoğrafın odak noktasını (🎯) değiştirebilirsiniz.'}
                 </p>
               </div>
               <button type="button" className="btn-ghost" onClick={() => setPreviewOpen(false)}>
@@ -209,23 +272,95 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
             </div>
             <div className="flex flex-1 min-h-0">
               <div className="flex w-[320px] flex-shrink-0 flex-col gap-[5px] overflow-y-auto border-r border-[var(--color-pebble)] p-[15px]">
-                {orderedItems.map((item, i) => (
-                  <div
-                    key={item.id}
-                    draggable
-                    onDragStart={() => setDragId(item.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => handleItemDrop(item.id)}
-                    onDragEnd={() => setDragId(null)}
-                    style={{ opacity: dragId === item.id ? 0.4 : 1, cursor: 'grab' }}
-                    className="flex items-center justify-between gap-[9px] border-b border-[var(--color-pebble)] py-[9px] text-[14px]"
-                  >
-                    <span>
-                      {i + 1}. {item.product.name}
-                    </span>
-                    <span className="text-[var(--color-bark)]">⠿</span>
-                  </div>
-                ))}
+                {orderedItems.map((item, i) => {
+                  const variantOrder = variantOrderByItem[item.id] ?? item.colorVariants.map((v) => v.colorLabel);
+                  const variantByLabel = new Map(item.colorVariants.map((v) => [v.colorLabel, v]));
+                  const orderedVariants = variantOrder.map((label) => variantByLabel.get(label)).filter((v): v is CatalogDetail['items'][number]['colorVariants'][number] => Boolean(v));
+                  const heroImage = item.product.images.find((im) => im.isPrimary) ?? item.product.images[0] ?? null;
+                  const isExpanded = expandedItemId === item.id;
+                  return (
+                    <div key={item.id} className="border-b border-[var(--color-pebble)]">
+                      <div
+                        draggable
+                        onDragStart={() => setDragId(item.id)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleItemDrop(item.id)}
+                        onDragEnd={() => setDragId(null)}
+                        style={{ opacity: dragId === item.id ? 0.4 : 1, cursor: 'grab' }}
+                        className="flex items-center justify-between gap-[9px] py-[9px] text-[14px]"
+                      >
+                        <span>
+                          {i + 1}. {item.product.name}
+                        </span>
+                        <div className="flex items-center gap-[9px] flex-shrink-0">
+                          {(heroImage || orderedVariants.length > 0) && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
+                              className="text-[var(--color-bark)] underline-offset-4"
+                              style={{ textDecoration: isExpanded ? 'underline' : 'none' }}
+                            >
+                              Görseller ({(heroImage ? 1 : 0) + orderedVariants.length})
+                            </button>
+                          )}
+                          <span className="text-[var(--color-bark)]">⠿</span>
+                        </div>
+                      </div>
+                      {isExpanded && (heroImage || orderedVariants.length > 0) && (
+                        <div className="flex flex-wrap gap-[9px] pb-[11px]">
+                          {heroImage && (
+                            <div className="flex w-[70px] flex-col items-center gap-[3px]" title="Ana görsel">
+                              <div className="relative h-[70px] w-[70px] bg-[var(--color-linen)] overflow-hidden flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={heroImage.url} alt={item.product.name} className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setFocalEditor({ itemId: item.id, imageUrl: heroImage.url, label: item.product.name })}
+                                  className="absolute bottom-[2px] right-[2px] flex h-[20px] w-[20px] items-center justify-center bg-black/60 text-[11px] leading-none text-white"
+                                  title="Odak noktasını ayarla"
+                                >
+                                  🎯
+                                </button>
+                              </div>
+                              <span className="text-[11px] text-[var(--color-bark)] truncate w-full text-center">Ana görsel</span>
+                            </div>
+                          )}
+                          {orderedVariants.map((v) => (
+                            <div
+                              key={v.colorLabel}
+                              draggable
+                              onDragStart={() => setDragVariantLabel(v.colorLabel)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={() => handleVariantDrop(item.id, v.colorLabel)}
+                              onDragEnd={() => setDragVariantLabel(null)}
+                              style={{ opacity: dragVariantLabel === v.colorLabel ? 0.4 : 1, cursor: 'grab' }}
+                              className="flex w-[70px] flex-col items-center gap-[3px]"
+                              title={v.colorLabel}
+                            >
+                              <div className="relative h-[70px] w-[70px] bg-[var(--color-linen)] overflow-hidden flex items-center justify-center">
+                                {v.imageUrl && (
+                                  <>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={v.imageUrl} alt={v.colorLabel} className="h-full w-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => setFocalEditor({ itemId: item.id, imageUrl: v.imageUrl as string, label: v.colorLabel })}
+                                      className="absolute bottom-[2px] right-[2px] flex h-[20px] w-[20px] items-center justify-center bg-black/60 text-[11px] leading-none text-white"
+                                      title="Odak noktasını ayarla"
+                                    >
+                                      🎯
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                              <span className="text-[11px] text-[var(--color-bark)] truncate w-full text-center">{v.colorLabel}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <iframe
                 key={previewTick}
@@ -233,6 +368,62 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                 title="Katalog önizleme"
                 className="h-full flex-1 bg-white"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {focalEditor && catalog && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-[25px]"
+          onClick={() => setFocalEditor(null)}
+        >
+          <div
+            className="flex w-full max-w-[420px] flex-col gap-[11px] bg-[var(--color-bone-white)] p-[20px]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-[16px]">{focalEditor.label} — Odak Noktası</h3>
+              <button type="button" className="btn-ghost" onClick={() => setFocalEditor(null)}>
+                ✕
+              </button>
+            </div>
+            <p className="text-[13px] text-[var(--color-bark)]">
+              Görselde kırpma sonrası görünmesini istediğiniz noktaya tıklayın (örn. mankenin kafası).
+            </p>
+            <div
+              className="relative w-full cursor-crosshair bg-[var(--color-linen)] overflow-hidden"
+              style={{ aspectRatio: '3 / 4' }}
+              onClick={handleFocalPick}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={upsizeTsoftImageUrl(focalEditor.imageUrl, 'O')}
+                alt={focalEditor.label}
+                className="h-full w-full object-cover pointer-events-none"
+                style={{
+                  objectPosition: `${(itemById.get(focalEditor.itemId)?.imageFocalPoints?.[focalEditor.imageUrl] ?? DEFAULT_FOCAL_POINT).x * 100}% ${
+                    (itemById.get(focalEditor.itemId)?.imageFocalPoints?.[focalEditor.imageUrl] ?? DEFAULT_FOCAL_POINT).y * 100
+                  }%`,
+                }}
+              />
+              <div
+                className="pointer-events-none absolute h-[16px] w-[16px] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
+                style={{
+                  left: `${(itemById.get(focalEditor.itemId)?.imageFocalPoints?.[focalEditor.imageUrl] ?? DEFAULT_FOCAL_POINT).x * 100}%`,
+                  top: `${(itemById.get(focalEditor.itemId)?.imageFocalPoints?.[focalEditor.imageUrl] ?? DEFAULT_FOCAL_POINT).y * 100}%`,
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => saveFocalPoint.mutate({ itemId: focalEditor.itemId, imageUrl: focalEditor.imageUrl, ...DEFAULT_FOCAL_POINT })}
+              >
+                Sıfırla
+              </button>
+              <p className="text-[13px] text-[var(--color-bark)]">{saveFocalPoint.isPending ? 'Kaydediliyor…' : 'Otomatik kaydedilir'}</p>
             </div>
           </div>
         </div>

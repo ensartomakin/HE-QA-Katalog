@@ -52,6 +52,11 @@ export interface CatalogItemColorVariant {
   imageUrl: string | null;
 }
 
+export interface FocalPoint {
+  x: number;
+  y: number;
+}
+
 export interface CatalogItem {
   id: string;
   productId: string;
@@ -61,6 +66,9 @@ export interface CatalogItem {
   priceDisplay: number;
   originalPriceDisplay: number;
   colorVariants: CatalogItemColorVariant[];
+  // Görsel URL'sine göre anahtarlanmış odak noktası (0-1 oran) — bkz. catalog.service.ts
+  // updateCatalogItemFocalPoint. Ayarlanmamış görseller bu map'te yer almaz.
+  imageFocalPoints: Record<string, FocalPoint> | null;
 }
 
 export interface CatalogDetail {
