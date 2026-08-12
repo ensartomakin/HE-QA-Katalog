@@ -209,9 +209,9 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                 → Önizle
               </button>
               <button type="button" className="btn-ghost" onClick={() => generate.mutate()} disabled={generate.isPending || catalog.status === 'GENERATING'}>
-                {catalog.status === 'GENERATING' ? 'Üretiliyor…' : catalog.status === 'READY' ? 'Yeniden Üret' : '→ PDF Üret'}
+                {generate.isPending || catalog.status === 'GENERATING' ? 'Üretiliyor…' : catalog.status === 'READY' ? 'Yeniden Üret' : '→ PDF Üret'}
               </button>
-              {catalog.status === 'READY' && (
+              {!generate.isPending && catalog.status === 'READY' && (
                 <a href={`/api/catalogs/${catalog.id}/pdf`} target="_blank" rel="noreferrer" className="btn-ghost">
                   ↓ İndir
                 </a>
