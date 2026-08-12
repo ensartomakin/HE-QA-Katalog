@@ -49,6 +49,41 @@ function extractFabricExcerpt(description: string | null): string | null {
   return result || null;
 }
 
+interface MediaItem {
+  key: string;
+  url: string;
+  alt: string;
+  size: 'B' | 'O';
+}
+
+// Kaynak taslakta bir ürünün sayfada gösterebileceği görsel sayısının pratik bir üst
+// sınırı var (en yoğun örnek: hero + 7 varyant = 8, bkz. s.19 "Bisiklet Yaka Tişört").
+// Bunu aşan ürünlerde (örn. 13 varyant) ilk 8 görsel bu sayfada, kalanlar aynı ürünün
+// devam sayfasında (kendi görsel sayısına uygun düzenle) gösterilir.
+const MAX_IMAGES_PER_PAGE = 8;
+
+function buildMediaItems(item: CatalogItem): MediaItem[] {
+  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
+  // Diğer görseller: ana ürünün DİĞER renk varyantları. Kaynak IDML taslağının (s.4-7)
+  // çerçeve koordinatları incelendi: her sayfada tek bir foto galerisi var, TR/EN için
+  // ayrı galeri yok — dolayısıyla tek dilli (Türkçe) tek galerili bu yapı kaynağa uygun.
+  const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
+
+  const items: MediaItem[] = [];
+  if (heroImage) items.push({ key: 'hero', url: heroImage.url, alt: item.product.name, size: 'B' });
+  for (const v of variantThumbs) {
+    if (v.imageUrl) items.push({ key: v.colorLabel, url: v.imageUrl, alt: v.colorLabel, size: 'O' });
+  }
+  return items;
+}
+
+function chunkMediaItems(items: MediaItem[]): MediaItem[][] {
+  if (items.length === 0) return [[]];
+  const chunks: MediaItem[][] = [];
+  for (let i = 0; i < items.length; i += MAX_IMAGES_PER_PAGE) chunks.push(items.slice(i, i + MAX_IMAGES_PER_PAGE));
+  return chunks;
+}
+
 function EdBrandMark({ brandLogoUrl }: { brandLogoUrl: string | null }) {
   if (brandLogoUrl) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -75,50 +110,169 @@ function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelTe
   );
 }
 
+function EdMediaImage({ item, media }: { item: CatalogItem; media: MediaItem }) {
+  return <img src={upsizeTsoftImageUrl(media.url, media.size)} alt={media.alt} style={focalPointStyle(item, media.url)} />;
+}
+
+/** Sayfa başına en fazla MAX_IMAGES_PER_PAGE (8) görsel — bir sayfadaki gerçek görsel
+ *  sayısına (chunk.length) göre kaynak taslaktan doğrulanmış sabit bir düzen seçilir. */
+function EdMediaLayout({ item, chunk }: { item: CatalogItem; chunk: MediaItem[] }) {
+  const hero = chunk[0];
+  const rest = chunk.slice(1);
+  const n = chunk.length;
+
+  // Kaynak taslaktaki (s.21 "Denim Kimono") 3 görsel örneği: hero solda + kalan 2 görsel
+  // yanında alt alta.
+  if (n === 3) {
+    return (
+      <div className="ed-media-row ed-media-row--hero-stack">
+        <div className="ed-media-box">{hero && <EdMediaImage item={item} media={hero} />}</div>
+        <div className="ed-stack-col">
+          {rest.map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Kaynak taslaktaki (s.10 "Parçalı Modal Sweat") 5 görsel örneği: hero + 2'li grup +
+  // 2 tekil büyük görsel.
+  if (n === 5) {
+    return (
+      <div className="ed-media-row ed-media-row--five">
+        <div className="ed-media-box">{hero && <EdMediaImage item={item} media={hero} />}</div>
+        <div className="ed-stack-col">
+          {rest.slice(0, 2).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        {rest.slice(2, 4).map((m) => (
+          <div key={m.key} className="ed-media-box">
+            <EdMediaImage item={item} media={m} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Kaynak taslaktaki (s.11 "Kalın Çizgili Sweat") 6 görsel örneği: hero + 2'li grup +
+  // 2'li grup + 1 tekil büyük görsel.
+  if (n === 6) {
+    return (
+      <div className="ed-media-row ed-media-row--six">
+        <div className="ed-media-box">{hero && <EdMediaImage item={item} media={hero} />}</div>
+        <div className="ed-stack-col">
+          {rest.slice(0, 2).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        <div className="ed-stack-col">
+          {rest.slice(2, 4).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        {rest.slice(4, 5).map((m) => (
+          <div key={m.key} className="ed-media-box">
+            <EdMediaImage item={item} media={m} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Kaynak taslaktaki (s.15 "Etek Ucu Oval Sweatshirt") 7 görsel örneği: hero solda +
+  // kalan 6 görsel 3 sütun x 2 satır ızgara halinde.
+  if (n === 7) {
+    return (
+      <div className="ed-media-row">
+        <div className="ed-hero-wrap">{hero && <EdMediaImage item={item} media={hero} />}</div>
+        <div className="ed-thumb-grid ed-thumb-grid--three-col">
+          {rest.map((m) => (
+            <div key={m.key} className="ed-thumb-wrap">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Kaynak taslaktaki (s.19 "Bisiklet Yaka Tişört") 8 görsel örneği: hero + 3 ayrı 2'li
+  // grup + 1 tekil büyük görsel. Sayfa başına görsel sayısının üst sınırı (bkz.
+  // MAX_IMAGES_PER_PAGE) olduğu için chunk uzunluğu bu değeri hiç aşmaz.
+  if (n === 8) {
+    return (
+      <div className="ed-media-row ed-media-row--eight">
+        <div className="ed-media-box">{hero && <EdMediaImage item={item} media={hero} />}</div>
+        <div className="ed-stack-col">
+          {rest.slice(0, 2).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        <div className="ed-stack-col">
+          {rest.slice(2, 4).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        <div className="ed-stack-col">
+          {rest.slice(4, 6).map((m) => (
+            <div key={m.key} className="ed-media-box">
+              <EdMediaImage item={item} media={m} />
+            </div>
+          ))}
+        </div>
+        {rest.slice(6, 7).map((m) => (
+          <div key={m.key} className="ed-media-box">
+            <EdMediaImage item={item} media={m} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Kaynak taslaktaki çok sayıda örnek sayfa (s.4-26) incelendi: 1,2,4 görselde hepsi
+  // büyük ve eşit boyutlu tek sırada.
+  return (
+    <div className="ed-media-row ed-media-row--equal">
+      {chunk.map((m) => (
+        <div key={m.key} className="ed-media-box">
+          <EdMediaImage item={item} media={m} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function EdProductPage({
   item,
+  mediaChunk,
   currency,
   discountPct,
   brandLogoUrl,
   pageNumber,
 }: {
   item: CatalogItem;
+  mediaChunk: MediaItem[];
   currency: CatalogDetail['currency'];
   discountPct: number;
   brandLogoUrl: string | null;
   pageNumber: number;
 }) {
-  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Küçük görseller: ana ürünün DİĞER renk varyantları. Kaynak IDML taslağının (s.4-7)
-  // çerçeve koordinatları incelendi: her sayfada tek bir foto galerisi var, TR/EN için
-  // ayrı galeri yok — dolayısıyla tek dilli (Türkçe) tek galerili bu yapı kaynağa uygun.
-  const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
-
-  const totalImageCount = (heroImage ? 1 : 0) + variantThumbs.length;
-  // Kaynak taslaktaki (s.21 "Denim Kimono") 3 varyantlı ürün örneği: her zaman 1 büyük
-  // hero solda + kalan 2 görsel onun yanında alt alta iki kutu halinde — sabit bir kural.
-  const useHeroPlusStack = Boolean(heroImage) && variantThumbs.length === 2;
-  // Kaynak taslaktaki (s.10 "Parçalı Modal Sweat") 5 varyantlı ürün örneği: hero solda +
-  // sonraki 2 varyant yan yana bir sütunda alt alta + kalan 2 varyant tekil büyük sütun
-  // olarak sağda — sabit bir kural.
-  const useFiveLayout = Boolean(heroImage) && variantThumbs.length === 4;
-  // Kaynak taslaktaki (s.11 "Kalın Çizgili Sweat") 6 varyantlı ürün örneği: hero solda +
-  // sonraki 2 varyant bir sütunda alt alta + bir sonraki 2 varyant başka bir sütunda alt
-  // alta + son varyant tekil büyük sütun olarak sağda — sabit bir kural.
-  const useSixLayout = Boolean(heroImage) && variantThumbs.length === 5;
-  // Kaynak taslaktaki (s.19 "Bisiklet Yaka Tişört") 8 varyantlı ürün örneği: hero solda +
-  // ortada 3 ayrı sütun (her biri 2 varyant alt alta) + son varyant tekil büyük sütun
-  // olarak sağda — sabit bir kural.
-  const useEightLayout = Boolean(heroImage) && variantThumbs.length === 7;
-  // Kaynak taslaktaki çok sayıda örnek sayfa (s.4-26) incelendi: 2-6 toplam görselde
-  // hepsi büyük ve eşit boyutlu tek sırada (bazen aynı rengin 2 farklı çekimi küçük bir
-  // çift olarak gruplanıyor — bizim veri modelimizde renk başına tek fotoğraf olduğu
-  // için bu çift-gruplama birebir taklit edilemiyor, o yüzden sadeleştirildi). 7+ toplam
-  // görselde büyük hero + küçük görsel ızgarası kullanılıyor (s.4'teki 9 görsellik örnek).
-  const useEqualRow =
-    !useHeroPlusStack && !useFiveLayout && !useSixLayout && !useEightLayout && totalImageCount > 0 && totalImageCount <= 6;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -128,205 +282,7 @@ function EdProductPage({
         </div>
 
         <div className="ed-product-layout">
-          {useEightLayout ? (
-            <div className="ed-media-row ed-media-row--eight">
-              <div className="ed-media-box">
-                {heroImage && (
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                )}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(0, 2).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(2, 4).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(4, 6).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              {variantThumbs.slice(6, 7).map((v) => (
-                <div key={v.colorLabel} className="ed-media-box">
-                  <img
-                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                    alt={v.colorLabel}
-                    style={focalPointStyle(item, v.imageUrl as string)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : useSixLayout ? (
-            <div className="ed-media-row ed-media-row--six">
-              <div className="ed-media-box">
-                {heroImage && (
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                )}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(0, 2).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(2, 4).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              {variantThumbs.slice(4, 5).map((v) => (
-                <div key={v.colorLabel} className="ed-media-box">
-                  <img
-                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                    alt={v.colorLabel}
-                    style={focalPointStyle(item, v.imageUrl as string)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : useFiveLayout ? (
-            <div className="ed-media-row ed-media-row--five">
-              <div className="ed-media-box">
-                {heroImage && (
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                )}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.slice(0, 2).map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-              {variantThumbs.slice(2, 4).map((v) => (
-                <div key={v.colorLabel} className="ed-media-box">
-                  <img
-                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                    alt={v.colorLabel}
-                    style={focalPointStyle(item, v.imageUrl as string)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : useHeroPlusStack ? (
-            <div className="ed-media-row ed-media-row--hero-stack">
-              <div className="ed-hero-wrap">
-                {heroImage && (
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                )}
-              </div>
-              <div className="ed-stack-col">
-                {variantThumbs.map((v) => (
-                  <div key={v.colorLabel} className="ed-media-box">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : useEqualRow ? (
-            <div className="ed-media-row ed-media-row--equal">
-              {heroImage && (
-                <div className="ed-media-box">
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                </div>
-              )}
-              {variantThumbs.map((v) => (
-                <div key={v.colorLabel} className="ed-media-box">
-                  <img
-                    src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                    alt={v.colorLabel}
-                    style={focalPointStyle(item, v.imageUrl as string)}
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="ed-media-row">
-              <div className="ed-hero-wrap">
-                {heroImage && (
-                  <img
-                    src={upsizeTsoftImageUrl(heroImage.url, 'B')}
-                    alt={item.product.name}
-                    style={focalPointStyle(item, heroImage.url)}
-                  />
-                )}
-              </div>
-              {/* Kaynak taslaktaki (s.15 "Etek Ucu Oval Sweatshirt") 7 varyantlı ürün
-                  örneği: hero solda + kalan 6 görsel 3 sütun x 2 satır ızgara halinde. */}
-              <div className={`ed-thumb-grid${variantThumbs.length === 6 ? ' ed-thumb-grid--three-col' : ''}`}>
-                {variantThumbs.map((v) => (
-                  <div key={v.colorLabel} className="ed-thumb-wrap">
-                    <img
-                      src={upsizeTsoftImageUrl(v.imageUrl as string, 'O')}
-                      alt={v.colorLabel}
-                      style={focalPointStyle(item, v.imageUrl as string)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <EdMediaLayout item={item} chunk={mediaChunk} />
 
           <div className="ed-info-col">
             <div className="ed-rule" />
@@ -400,7 +356,17 @@ function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null
 }
 
 export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTemplateProps) {
-  const totalPages = catalog.items.length + 2; // kapak + ürünler + hakkımızda/iletişim
+  // Bir ürünün görsel sayısı sayfa başına düşen üst sınırı (8) aşarsa birden fazla sayfaya
+  // bölünür (bkz. MAX_IMAGES_PER_PAGE) — bu yüzden sayfa sayısı artık catalog.items.length
+  // ile birebir değil, toplam üretilen "ürün sayfası" sayısıyla belirleniyor.
+  const productPages = catalog.items.flatMap((item) =>
+    chunkMediaItems(buildMediaItems(item)).map((chunk, chunkIndex) => ({
+      key: `${item.id}-${chunkIndex}`,
+      item,
+      chunk,
+    }))
+  );
+  const totalPages = productPages.length + 2; // kapak + ürün sayfaları + hakkımızda/iletişim
 
   return (
     <div className="catalog-print editoryal">
@@ -418,10 +384,11 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
         </div>
       </div>
 
-      {catalog.items.map((item, index) => (
+      {productPages.map((pp, index) => (
         <EdProductPage
-          key={item.id}
-          item={item}
+          key={pp.key}
+          item={pp.item}
+          mediaChunk={pp.chunk}
           currency={catalog.currency}
           discountPct={catalog.discountPct}
           brandLogoUrl={settings.brandLogoUrl}
