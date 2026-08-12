@@ -142,7 +142,6 @@
 
 .ed-page-frame {
   height: 100%;
-  border: 1px solid var(--ed-border);
   padding: 6mm 8mm;
   display: flex;
   flex-direction: column;
@@ -297,6 +296,7 @@
 
 .ed-info-col .ed-rule {
   width: 16mm;
+  height: 2.5px;
   margin: 0 0 3mm;
 }
 
