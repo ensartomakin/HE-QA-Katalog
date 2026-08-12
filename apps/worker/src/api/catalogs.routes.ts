@@ -2,7 +2,13 @@ import fs from 'fs';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { CATALOG_TEMPLATE_IDS, DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
-import { createCatalog, getCatalogDetail, listCatalogs, updateCatalogCoverImage } from '../services/catalog.service';
+import {
+  createCatalog,
+  getCatalogDetail,
+  listCatalogs,
+  updateCatalogCoverImage,
+  updateCatalogItemsOrder,
+} from '../services/catalog.service';
 import { generateCatalogPdf, getCatalogPdfPath } from '../services/pdf.service';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils/async-handler';
@@ -79,6 +85,26 @@ catalogsRouter.patch(
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`[catalogs/update] ${message}`);
+      res.status(400).json({ error: message });
+    }
+  })
+);
+
+const sortOrderSchema = z.object({ itemIds: z.array(z.string()).min(1) });
+
+catalogsRouter.put(
+  '/:id/sort-order',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = sortOrderSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      await updateCatalogItemsOrder(req.params.id, parsed.data.itemIds);
+      res.json({ ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
       res.status(400).json({ error: message });
     }
   })

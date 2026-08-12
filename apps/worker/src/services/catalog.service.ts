@@ -116,6 +116,18 @@ export async function updateCatalogCoverImage(id: string, coverImageUrl: string 
   return prisma.catalog.update({ where: { id }, data: { coverImageUrl } });
 }
 
+/** Önizleme ekranındaki sürükle-bırak sonrası çağrılır — verilen sırayla catalogItem.sortOrder'ı
+ *  0, 1, 2… olarak yazar (getCatalogDetail bu alana göre sıralıyor). itemIds bu kataloga ait
+ *  olmayan bir id içeriyorsa (count uyuşmazlığı) işlem hiç yapılmaz. */
+export async function updateCatalogItemsOrder(catalogId: string, itemIds: string[]) {
+  const count = await prisma.catalogItem.count({ where: { catalogId, id: { in: itemIds } } });
+  if (count !== itemIds.length) throw new Error('Sıralama listesi bu kataloğa ait ürünlerle eşleşmiyor');
+
+  await prisma.$transaction(
+    itemIds.map((id, index) => prisma.catalogItem.update({ where: { id }, data: { sortOrder: index } }))
+  );
+}
+
 export async function markCatalogGenerating(id: string) {
   await prisma.catalog.update({ where: { id }, data: { status: 'GENERATING' } });
 }
