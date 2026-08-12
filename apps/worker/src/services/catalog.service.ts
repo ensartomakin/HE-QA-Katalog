@@ -1,6 +1,13 @@
 import { calculatePrice, CATALOG_TEMPLATES } from '@he-qa/db';
 import { prisma } from '../db/prisma';
 
+// variantOrder boşsa ya da colorLabel içinde yoksa tüm bu tür öğeler aynı index'i alır;
+// Array.sort stabil olduğundan bu durumda tsoft'tan gelen ham sıra korunur (bkz. getCatalogDetail).
+function orderIndex(order: string[], colorLabel: string): number {
+  const idx = order.indexOf(colorLabel);
+  return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+}
+
 export interface CreateCatalogInput {
   name: string;
   coverTitle?: string;
@@ -97,7 +104,8 @@ export async function getCatalogDetail(id: string) {
       .map((tid) => variantByTsoftId.get(tid))
       .filter((p): p is NonNullable<typeof p> => Boolean(p?.colorLabel))
       .map((p) => ({ colorLabel: p.colorLabel as string, imageUrl: p.images[0]?.url ?? null }))
-      .filter((c, i, arr) => arr.findIndex((x) => x.colorLabel === c.colorLabel) === i);
+      .filter((c, i, arr) => arr.findIndex((x) => x.colorLabel === c.colorLabel) === i)
+      .sort((a, b) => orderIndex(item.variantOrder, a.colorLabel) - orderIndex(item.variantOrder, b.colorLabel));
 
     return { ...item, priceTry: wholesaleTry, priceDisplay: displayPrice, originalPriceDisplay, colorVariants };
   });
@@ -126,6 +134,37 @@ export async function updateCatalogItemsOrder(catalogId: string, itemIds: string
   await prisma.$transaction(
     itemIds.map((id, index) => prisma.catalogItem.update({ where: { id }, data: { sortOrder: index } }))
   );
+}
+
+/** Önizlemedeki varyant galerisi sürükle-bırak sonrası çağrılır — verilen colorLabel sırasını
+ *  kalemin variantOrder alanına yazar (getCatalogDetail bu sırayla colorVariants'ı diziyor).
+ *  itemId bu kataloğa ait değilse işlem yapılmaz. colorLabels, o kalemin mevcut colorVariants
+ *  listesindeki etiketlerle bire bir eşleşmek zorunda değil — getCatalogDetail zaten eşleşmeyen
+ *  etiketleri yok sayıp ham sırayı koruyor, bu yüzden burada ekstra doğrulama yapılmıyor.*/
+export async function updateCatalogItemVariantOrder(catalogId: string, itemId: string, colorLabels: string[]) {
+  const item = await prisma.catalogItem.findFirst({ where: { id: itemId, catalogId } });
+  if (!item) throw new Error('Bu ürün bu kataloğa ait değil');
+
+  await prisma.catalogItem.update({ where: { id: itemId }, data: { variantOrder: colorLabels } });
+}
+
+/** Önizlemedeki odak noktası düzenleyicisinden çağrılır — verilen görsel URL'si için
+ *  x/y (0-1 oran) değerini kalemin imageFocalPoints JSON alanına yazar (diğer görsellerin
+ *  odak noktalarını korur). itemId bu kataloğa ait değilse işlem yapılmaz. */
+export async function updateCatalogItemFocalPoint(
+  catalogId: string,
+  itemId: string,
+  imageUrl: string,
+  x: number,
+  y: number
+) {
+  const item = await prisma.catalogItem.findFirst({ where: { id: itemId, catalogId } });
+  if (!item) throw new Error('Bu ürün bu kataloğa ait değil');
+
+  const existing = (item.imageFocalPoints as Record<string, { x: number; y: number }> | null) ?? {};
+  const next = { ...existing, [imageUrl]: { x, y } };
+
+  await prisma.catalogItem.update({ where: { id: itemId }, data: { imageFocalPoints: next } });
 }
 
 export async function markCatalogGenerating(id: string) {
