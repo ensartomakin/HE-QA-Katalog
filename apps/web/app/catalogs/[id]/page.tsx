@@ -263,7 +263,7 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                 <p className="text-[14px] text-[var(--color-bark)]">
                   {saveItemOrder.isPending || saveVariantOrder.isPending || saveFocalPoint.isPending
                     ? 'Kaydediliyor…'
-                    : 'Ürünleri sürükleyerek sırasını, "Görseller"i açıp galeri sırasını ve her fotoğrafın odak noktasını (🎯) değiştirebilirsiniz.'}
+                    : 'Ürünleri sürükleyerek sırasını, "Görseller"i açıp galeri sırasını (ilk sıradaki ana görsel olur) ve her fotoğrafın odak noktasını (🎯) değiştirebilirsiniz.'}
                 </p>
               </div>
               <button type="button" className="btn-ghost" onClick={() => setPreviewOpen(false)}>
@@ -275,8 +275,16 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                 {orderedItems.map((item, i) => {
                   const variantOrder = variantOrderByItem[item.id] ?? item.colorVariants.map((v) => v.colorLabel);
                   const variantByLabel = new Map(item.colorVariants.map((v) => [v.colorLabel, v]));
-                  const orderedVariants = variantOrder.map((label) => variantByLabel.get(label)).filter((v): v is CatalogDetail['items'][number]['colorVariants'][number] => Boolean(v));
-                  const heroImage = item.product.images.find((im) => im.isPrimary) ?? item.product.images[0] ?? null;
+                  // Galerinin tamamı (ana görsel dahil) tek bir sürüklenebilir liste — ilk sıradaki
+                  // "ana görsel" olarak büyük gösterilir (bkz. editoryal Template.tsx buildMediaItems).
+                  // Böylece hangi varyantın ana görsel olacağı da sürükle-bırak ile değiştirilebilir.
+                  const orderedGallery = variantOrder
+                    .map((label) => variantByLabel.get(label))
+                    .filter((v): v is CatalogDetail['items'][number]['colorVariants'][number] => Boolean(v?.imageUrl));
+                  // colorVariants boşsa (ör. ürünün renk ailesi kurulamamış) sıralanamayan tek bir
+                  // sabit ana görsele düş — şablonlardaki fallback ile tutarlı.
+                  const fallbackHero = orderedGallery.length === 0 ? item.product.images.find((im) => im.isPrimary) ?? item.product.images[0] ?? null : null;
+                  const galleryCount = orderedGallery.length || (fallbackHero ? 1 : 0);
                   const isExpanded = expandedItemId === item.id;
                   return (
                     <div key={item.id} className="border-b border-[var(--color-pebble)]">
@@ -293,29 +301,29 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                           {i + 1}. {item.product.name}
                         </span>
                         <div className="flex items-center gap-[9px] flex-shrink-0">
-                          {(heroImage || orderedVariants.length > 0) && (
+                          {galleryCount > 0 && (
                             <button
                               type="button"
                               onClick={() => setExpandedItemId(isExpanded ? null : item.id)}
                               className="text-[var(--color-bark)] underline-offset-4"
                               style={{ textDecoration: isExpanded ? 'underline' : 'none' }}
                             >
-                              Görseller ({(heroImage ? 1 : 0) + orderedVariants.length})
+                              Görseller ({galleryCount})
                             </button>
                           )}
                           <span className="text-[var(--color-bark)]">⠿</span>
                         </div>
                       </div>
-                      {isExpanded && (heroImage || orderedVariants.length > 0) && (
+                      {isExpanded && galleryCount > 0 && (
                         <div className="flex flex-wrap gap-[9px] pb-[11px]">
-                          {heroImage && (
+                          {fallbackHero && (
                             <div className="flex w-[70px] flex-col items-center gap-[3px]" title="Ana görsel">
                               <div className="relative h-[70px] w-[70px] bg-[var(--color-linen)] overflow-hidden flex items-center justify-center">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={heroImage.url} alt={item.product.name} className="h-full w-full object-cover" />
+                                <img src={fallbackHero.url} alt={item.product.name} className="h-full w-full object-cover" />
                                 <button
                                   type="button"
-                                  onClick={() => setFocalEditor({ itemId: item.id, imageUrl: heroImage.url, label: item.product.name })}
+                                  onClick={() => setFocalEditor({ itemId: item.id, imageUrl: fallbackHero.url, label: item.product.name })}
                                   className="absolute bottom-[2px] right-[2px] flex h-[20px] w-[20px] items-center justify-center bg-black/60 text-[11px] leading-none text-white"
                                   title="Odak noktasını ayarla"
                                 >
@@ -325,7 +333,7 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                               <span className="text-[11px] text-[var(--color-bark)] truncate w-full text-center">Ana görsel</span>
                             </div>
                           )}
-                          {orderedVariants.map((v) => (
+                          {orderedGallery.map((v, idx) => (
                             <div
                               key={v.colorLabel}
                               draggable
@@ -335,23 +343,24 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                               onDragEnd={() => setDragVariantLabel(null)}
                               style={{ opacity: dragVariantLabel === v.colorLabel ? 0.4 : 1, cursor: 'grab' }}
                               className="flex w-[70px] flex-col items-center gap-[3px]"
-                              title={v.colorLabel}
+                              title={idx === 0 ? `${v.colorLabel} (Ana görsel)` : v.colorLabel}
                             >
                               <div className="relative h-[70px] w-[70px] bg-[var(--color-linen)] overflow-hidden flex items-center justify-center">
-                                {v.imageUrl && (
-                                  <>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={v.imageUrl} alt={v.colorLabel} className="h-full w-full object-cover" />
-                                    <button
-                                      type="button"
-                                      onClick={() => setFocalEditor({ itemId: item.id, imageUrl: v.imageUrl as string, label: v.colorLabel })}
-                                      className="absolute bottom-[2px] right-[2px] flex h-[20px] w-[20px] items-center justify-center bg-black/60 text-[11px] leading-none text-white"
-                                      title="Odak noktasını ayarla"
-                                    >
-                                      🎯
-                                    </button>
-                                  </>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={v.imageUrl as string} alt={v.colorLabel} className="h-full w-full object-cover" />
+                                {idx === 0 && (
+                                  <span className="absolute top-[2px] left-[2px] bg-black/60 px-[4px] py-[1px] text-[9px] leading-none text-white">
+                                    Ana
+                                  </span>
                                 )}
+                                <button
+                                  type="button"
+                                  onClick={() => setFocalEditor({ itemId: item.id, imageUrl: v.imageUrl as string, label: v.colorLabel })}
+                                  className="absolute bottom-[2px] right-[2px] flex h-[20px] w-[20px] items-center justify-center bg-black/60 text-[11px] leading-none text-white"
+                                  title="Odak noktasını ayarla"
+                                >
+                                  🎯
+                                </button>
                               </div>
                               <span className="text-[11px] text-[var(--color-bark)] truncate w-full text-center">{v.colorLabel}</span>
                             </div>
