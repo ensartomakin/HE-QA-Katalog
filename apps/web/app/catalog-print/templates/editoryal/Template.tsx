@@ -128,23 +128,6 @@ function EdMediaLayout({ item, chunk }: { item: CatalogItem; chunk: MediaItem[] 
   const rest = chunk.slice(1);
   const n = chunk.length;
 
-  // Kaynak taslaktaki (s.21 "Denim Kimono") 3 görsel örneği: hero solda + kalan 2 görsel
-  // yanında alt alta.
-  if (n === 3) {
-    return (
-      <div className="ed-media-row ed-media-row--hero-stack">
-        <div className="ed-media-box">{hero && <EdMediaImage item={item} media={hero} />}</div>
-        <div className="ed-stack-col">
-          {rest.map((m) => (
-            <div key={m.key} className="ed-media-box">
-              <EdMediaImage item={item} media={m} />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   // Kaynak taslaktaki (s.10 "Parçalı Modal Sweat") 5 görsel örneği: hero + 2'li grup +
   // 2 tekil büyük görsel.
   if (n === 5) {
@@ -250,8 +233,9 @@ function EdMediaLayout({ item, chunk }: { item: CatalogItem; chunk: MediaItem[] 
     );
   }
 
-  // Kaynak taslaktaki çok sayıda örnek sayfa (s.4-26) incelendi: 1,2,4 görselde hepsi
-  // büyük ve eşit boyutlu tek sırada.
+  // 1,2,3,4 görselde hepsi büyük ve eşit boyutlu tek sırada — 3 görsel de 4 görsel gibi
+  // yan yana gösterilir (kullanıcı isteğiyle, kaynaktaki "hero + 2'li grup" örneğinden
+  // vazgeçildi).
   return (
     <div className="ed-media-row ed-media-row--equal">
       {chunk.map((m) => (
