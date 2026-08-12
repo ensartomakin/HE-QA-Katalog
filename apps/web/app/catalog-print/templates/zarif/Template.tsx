@@ -40,13 +40,14 @@ function ZarifProductCard({
   currency: CatalogDetail['currency'];
   discountPct: number;
 }) {
-  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Yalnızca gerçek görseli olan, DİĞER renk varyantları — büyük görselde zaten gösterilen
-  // ürünün kendi rengi burada tekrar edilmez. Eksik fotoğraflı varyantlar için boş krem
-  // kutu bırakmak yerine grid, mevcut fotoğraf sayısına göre daralır.
-  const thumbnails = item.colorVariants
-    .filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel)
-    .slice(0, 3);
+  // Galerinin ilk sırası büyük (hero) görsel, kalanı küçük görsel — colorVariants ürünün
+  // kendi rengini de içerir ve önizlemedeki sürükle-bırak ile kaydedilen variantOrder'a göre
+  // sıralanmıştır (bkz. editoryal Template.tsx buildMediaItems, aynı mantık). Bu sayede ana
+  // görsel de diğer renk varyantlarıyla birlikte kullanıcının belirlediği sırayla değişir.
+  const gallery = item.colorVariants.filter((c) => c.imageUrl);
+  const fallbackHeroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
+  const heroImage = gallery.length > 0 ? { url: gallery[0].imageUrl as string } : fallbackHeroImage;
+  const thumbnails = gallery.length > 0 ? gallery.slice(1, 4) : [];
 
   return (
     <div className="zarif-card">

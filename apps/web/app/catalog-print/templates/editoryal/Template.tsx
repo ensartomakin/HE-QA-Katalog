@@ -63,18 +63,25 @@ interface MediaItem {
 const MAX_IMAGES_PER_PAGE = 8;
 
 function buildMediaItems(item: CatalogItem): MediaItem[] {
-  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
-  // Diğer görseller: ana ürünün DİĞER renk varyantları. Kaynak IDML taslağının (s.4-7)
-  // çerçeve koordinatları incelendi: her sayfada tek bir foto galerisi var, TR/EN için
-  // ayrı galeri yok — dolayısıyla tek dilli (Türkçe) tek galerili bu yapı kaynağa uygun.
-  const variantThumbs = item.colorVariants.filter((c) => c.imageUrl && c.colorLabel !== item.product.colorLabel);
-
-  const items: MediaItem[] = [];
-  if (heroImage) items.push({ key: 'hero', url: heroImage.url, alt: item.product.name, size: 'B' });
-  for (const v of variantThumbs) {
-    if (v.imageUrl) items.push({ key: v.colorLabel, url: v.imageUrl, alt: v.colorLabel, size: 'O' });
+  // Galerinin ilk sırası büyük (hero) görsel olarak gösterilir, kalanı küçük görsel —
+  // colorVariants zaten ürünün kendi rengini de içerir (bkz. catalog.service.ts
+  // getCatalogDetail) ve önizlemedeki sürükle-bırak ile kaydedilen variantOrder'a göre
+  // sıralanmıştır. Bu sayede ana görsel de diğer renk varyantlarıyla birlikte, kullanıcının
+  // belirlediği sırayla değiştirilebilir; sabit olarak "ürünün kendi rengi" değildir.
+  const gallery = item.colorVariants.filter((c) => c.imageUrl);
+  if (gallery.length > 0) {
+    return gallery.map((v, i) => ({
+      key: v.colorLabel,
+      url: v.imageUrl as string,
+      alt: i === 0 ? item.product.name : v.colorLabel,
+      size: i === 0 ? 'B' : 'O',
+    }));
   }
-  return items;
+
+  // colorVariants boşsa (ör. ürünün colorLabel'i yok, renk ailesi kurulamamış) — en azından
+  // ürünün kendi görselini göster; bu durumda sıralama yapılamaz (tek görsel var).
+  const heroImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
+  return heroImage ? [{ key: 'hero', url: heroImage.url, alt: item.product.name, size: 'B' }] : [];
 }
 
 function chunkMediaItems(items: MediaItem[]): MediaItem[][] {
