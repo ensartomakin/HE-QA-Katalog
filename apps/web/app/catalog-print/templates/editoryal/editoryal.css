@@ -137,14 +137,17 @@
 .ed-about-page {
   background: var(--ed-paper);
   color: var(--ed-ink);
-  padding: 6mm 6mm 0;
+  padding: 0 6mm 0;
 }
 
 .ed-page-frame {
   height: 100%;
-  /* Alt padding yok — alt bilgi satırı artık normal akışta değil, mutlak
-     konumlandırılıyor (bkz. ed-page-footer) ve kendi 3mm boşluğunu kendi taşıyor. */
-  padding: 6mm 8mm 0;
+  /* Üstte görsellerle sayfa kenarı arasında sabit 3mm boşluk (padding-top) — normal
+     akışta olduğu için altta gerektiği gibi mutlak konumlama gerekmiyor, içerik hiçbir
+     zaman sayfanın üstünü itemez. Alt padding yok — alt bilgi satırı normal akışta
+     değil, mutlak konumlandırılıyor (bkz. ed-page-footer) ve kendi 3mm boşluğunu
+     kendi taşıyor. */
+  padding: 3mm 8mm 0;
   display: flex;
   flex-direction: column;
   position: relative;
