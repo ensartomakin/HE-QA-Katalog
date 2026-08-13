@@ -341,7 +341,7 @@
 }
 
 .ed-info-right {
-  flex: 0 0 32%;
+  flex: 0 0 24.3%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -473,19 +473,19 @@
 }
 
 .ed-price-original {
-  font-size: 8px;
-  color: var(--ed-muted);
+  font-size: 9px;
+  color: var(--ed-ink);
   text-decoration: line-through;
 }
 
 .ed-price-value {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--ed-ink);
+  color: var(--ed-red);
 }
 
 .ed-price-discount {
-  font-size: 8px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--ed-red);
 }
