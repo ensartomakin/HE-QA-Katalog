@@ -137,12 +137,15 @@
 .ed-about-page {
   background: var(--ed-paper);
   color: var(--ed-ink);
-  padding: 6mm;
+  padding: 6mm 6mm 0;
 }
 
+/* Alt bilgi satırı (logo/fiyat/sayfa no) ile sayfanın gerçek alt kenarı arasında
+   toplam 3mm boşluk kalsın diye üstteki .ed-product-page/.ed-about-page bottom
+   padding'i kaldırılıp buraya taşındı (üst/yan boşluklar değişmedi). */
 .ed-page-frame {
   height: 100%;
-  padding: 6mm 8mm;
+  padding: 6mm 8mm 3mm;
   display: flex;
   flex-direction: column;
 }
@@ -366,7 +369,7 @@
 .ed-page-footer {
   position: relative;
   flex-shrink: 0;
-  margin-top: 1.5mm;
+  margin-top: 3mm;
 }
 
 .ed-page-footer .ed-page-number {
