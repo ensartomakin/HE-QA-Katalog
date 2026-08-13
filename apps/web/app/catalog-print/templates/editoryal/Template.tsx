@@ -33,6 +33,19 @@ const DESCRIPTION_STOP_WORDS = [
 ];
 const DESCRIPTION_MAX_CHARS = 320;
 
+// T-Soft'taki ürün adları genelde model adı + rengin/desenin adıyla bitiyor (örn.
+// "RÜZGARLIK DETAYLI UZUN YÜZME TAKIMI AÇIK HAKİ" → model + "Açık Haki" rengi).
+// Sayfada sadece modele ait kısmın kalması için, ürünün kendi colorLabel'i adın
+// sonunda geçiyorsa (büyük/küçük harf farkı gözetmeden) kırpılıyor.
+function stripColorFromName(name: string, colorLabel: string | null): string {
+  const trimmedColor = colorLabel?.trim();
+  if (!trimmedColor) return name;
+  const lowerName = name.toLocaleLowerCase('tr');
+  const lowerColor = trimmedColor.toLocaleLowerCase('tr');
+  if (!lowerName.endsWith(lowerColor)) return name;
+  return name.slice(0, name.length - trimmedColor.length).trim();
+}
+
 function extractFabricExcerpt(description: string | null): string | null {
   if (!description) return null;
   const sentences = description.split(/(?<=[.!?])\s+/);
@@ -338,6 +351,7 @@ function EdProductPage({
     extractFabricComposition(item.product.description) ??
     extractFabricMaterialFallback(item.product.description) ??
     item.product.fabricInfo;
+  const displayName = stripColorFromName(item.product.name, item.product.colorLabel);
 
   return (
     <div className="pdf-page ed-product-page">
@@ -350,15 +364,22 @@ function EdProductPage({
             <div className="ed-rule" />
             <div className="ed-info-row">
               <div className="ed-info-left">
-                <div className="ed-panel-name">{item.product.name}</div>
+                <div className="ed-panel-name">{displayName}</div>
                 {descriptionExcerpt && <p className="ed-panel-description">{descriptionExcerpt}</p>}
               </div>
               <div className="ed-info-right">
                 {item.product.colors.length > 0 && (
                   <div className="ed-color-dots">
-                    {item.product.colors.map((c) => (
-                      <span key={c.id} className="ed-color-dot" style={{ background: c.hexPreview ?? '#d8d2c2' }} title={c.name} />
-                    ))}
+                    {item.product.colors.map((c) =>
+                      c.hexPreview ? (
+                        <span key={c.id} className="ed-color-dot" style={{ background: c.hexPreview }} title={c.name} />
+                      ) : (
+                        // Desen/baskı adıyla anılan (örn. "Çiçekli", "Leopar Desen") ve tek bir
+                        // renge indirgenemeyen varyantlar için düz bir renk yerine, "bu bir renk
+                        // değil desen" mesajını veren çok renkli bir halka gösteriliyor.
+                        <span key={c.id} className="ed-color-dot ed-color-dot--pattern" title={c.name} />
+                      )
+                    )}
                   </div>
                 )}
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
