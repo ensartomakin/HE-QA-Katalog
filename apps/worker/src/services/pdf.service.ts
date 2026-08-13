@@ -35,6 +35,11 @@ export async function generateCatalogPdf(catalogId: string): Promise<string> {
       const url = `${webUrl()}/catalog-print/${catalogId}`;
       logger.info(`[pdf] render başlıyor: ${url}`);
       await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
+      // networkidle, font dosyalarının indirildiğini garanti eder ama şekillendirilip
+      // layout'a uygulandığını değil — bu olmadan PDF, hâlâ fallback fontla ölçülmüş
+      // (dolayısıyla farklı satır sayısına sahip) bir sayfayı yakalayabilir, bu da
+      // sayfa sonundaki içeriğin (örn. alt bilgi satırı) kırpılmasına yol açar.
+      await page.evaluate(() => document.fonts.ready);
       await page.pdf({
         path: filePath,
         // format:'A4' yerine açık width/height — .pdf-page'in şablona göre 210x297mm
