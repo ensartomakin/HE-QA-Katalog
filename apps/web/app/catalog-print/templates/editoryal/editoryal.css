@@ -150,19 +150,18 @@
   position: relative;
 }
 
-/* Sol üst köşedeki sabit künye ("HE-QA / <başlık>") — page-frame'e göre mutlak
-   konumlandırılıyor (bkz. ed-page-footer'daki aynı teknik), üstteki 6mm+6mm boşluk
-   içine, görsellerin sol kenarıyla hizalı. */
+/* Sol üst köşedeki sabit künye ("HE-QA / <başlık>") — page-frame'in normal akışında
+   ilk eleman, görsellerin sol kenarıyla hizalı (page-frame'in kendi sol padding'i
+   sayesinde). Altındaki görselle arasında sabit 3px boşluk bırakır. */
 .ed-running-header {
-  position: absolute;
-  top: 3mm;
-  left: 8mm;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 1.5mm;
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  margin-bottom: 3px;
 }
 
 .ed-running-header-rule {
@@ -370,6 +369,23 @@
   -webkit-line-clamp: 7;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Renk balonları — diğer şablonlardaki (bkz. he-qa-website heqa-color-dot) aynı düz
+   renk noktacığı deseni; sağ sütunda beden bilgisinin üstünde yer alır. */
+.ed-color-dots {
+  flex-shrink: 0;
+  display: flex;
+  gap: 1.5mm;
+  flex-wrap: wrap;
+}
+
+.ed-color-dot {
+  width: 3mm;
+  height: 3mm;
+  border-radius: 50%;
+  border: 1px solid var(--ed-border);
+  flex-shrink: 0;
 }
 
 .ed-size-line,
