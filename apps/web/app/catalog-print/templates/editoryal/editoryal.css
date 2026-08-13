@@ -159,22 +159,14 @@
   left: 8mm;
   display: flex;
   align-items: center;
-  gap: 2.5mm;
-  font-size: 10px;
+  gap: 1.5mm;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
 }
 
 .ed-running-header-rule {
-  width: 1px;
-  height: 5px;
-  background: var(--ed-red);
-  flex-shrink: 0;
-}
-
-.ed-running-header-title {
-  font-weight: 400;
-  letter-spacing: 0.02em;
+  color: var(--ed-red);
 }
 
 .ed-page-number {

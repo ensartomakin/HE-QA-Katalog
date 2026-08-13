@@ -119,13 +119,13 @@ function EdBrandMark({ brandLogoUrl, variant }: { brandLogoUrl: string | null; v
 
 // Sayfanın sol üst köşesindeki sabit "HE-QA / <başlık>" ifadesi — kaynak taslaktaki
 // (referans görsel) her iç sayfanın üstünde tekrar eden künye ile aynı. "HE-QA" ve
-// kırmızı ayraç çizgisi sabit; ardından gelen metin kullanıcının kapak başlığı alanına
-// girdiği değer (örn. "AW/24-25"), girilmemişse katalog adına düşer.
+// kırmızı "/" ayracı sabit; ardından gelen metin kullanıcının kapak başlığı alanına
+// girdiği değer (örn. "TESETTÜR MAYO"), girilmemişse katalog adına düşer.
 function EdRunningHeader({ title }: { title: string }) {
   return (
     <div className="ed-running-header">
       <span className="ed-running-header-brand">HE-QA</span>
-      <span className="ed-running-header-rule" />
+      <span className="ed-running-header-rule">/</span>
       <span className="ed-running-header-title">{title}</span>
     </div>
   );
