@@ -67,38 +67,6 @@
   z-index: 0;
 }
 
-.ed-cover-page.has-cover-image::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, rgba(0, 0, 0, 0.15) 45%, rgba(0, 0, 0, 0) 70%);
-  z-index: 1;
-}
-
-.ed-cover-content {
-  position: relative;
-  z-index: 2;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 18mm 24mm;
-  text-align: center;
-  color: var(--ed-ink);
-}
-
-.ed-cover-page.has-cover-image .ed-cover-content {
-  color: #fff;
-}
-
-.ed-cover-brand {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 0.35em;
-  margin-bottom: 10mm;
-}
-
 .ed-brand-logo {
   max-height: 12mm;
   max-width: 55mm;
@@ -113,23 +81,6 @@
   max-height: 7.5mm;
   max-width: 36mm;
   margin: 0;
-}
-
-.ed-cover-title {
-  font-size: 32px;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.ed-cover-subtitle {
-  font-family: var(--ed-serif);
-  font-style: italic;
-  font-size: 13px;
-  margin-top: 5mm;
-  max-width: 140mm;
-  line-height: 1.5;
-  opacity: 0.8;
 }
 
 /* --- Ortak sayfa iskeleti (ürün + hakkımızda sayfaları) --- */
@@ -374,6 +325,7 @@
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
+  letter-spacing: 0.015em;
   margin-bottom: 3mm;
 }
 
@@ -381,6 +333,7 @@
   flex-shrink: 0;
   font-size: 11.5px;
   line-height: 1.6;
+  letter-spacing: 0.01em;
   margin: 0;
   /* Görsel düzeninden bağımsız, sabit bir genişlikte kesiliyor — kaynak görselde
      işaretlenen sınıra (2. ve 3. görsel arası, satır genişliğinin yarısı) göre. */
@@ -420,6 +373,7 @@
 .ed-fabric-line {
   font-size: 9.5px;
   line-height: 1.6;
+  letter-spacing: 0.01em;
 }
 
 .ed-size-line span + span {
@@ -443,6 +397,7 @@
 .ed-price-label {
   font-size: 9.5px;
   font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .ed-page-footer {
@@ -479,18 +434,21 @@
   font-size: 9px;
   color: var(--ed-ink);
   text-decoration: line-through;
+  letter-spacing: 0.01em;
 }
 
 .ed-price-value {
   font-size: 12px;
   font-weight: 700;
   color: var(--ed-red);
+  letter-spacing: 0.01em;
 }
 
 .ed-price-discount {
   font-size: 11px;
   font-weight: 700;
   color: var(--ed-red);
+  letter-spacing: 0.01em;
 }
 
 /* --- Hakkımızda / İletişim sayfası --- */

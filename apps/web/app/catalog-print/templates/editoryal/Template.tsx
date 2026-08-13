@@ -532,18 +532,11 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
 
   return (
     <div className="catalog-print editoryal">
-      <div className={`pdf-page ed-cover-page${catalog.coverImageUrl ? ' has-cover-image' : ''}`}>
+      <div className="pdf-page ed-cover-page">
         {catalog.coverImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={catalog.coverImageUrl} alt="" className="ed-cover-image" />
         )}
-        <div className="ed-cover-content">
-          <div className="ed-cover-brand">
-            <EdBrandMark brandLogoUrl={settings.brandLogoUrl} />
-          </div>
-          <div className="ed-cover-title">{catalog.coverTitle || catalog.name}</div>
-          {catalog.coverSubtitle && <div className="ed-cover-subtitle">{catalog.coverSubtitle}</div>}
-        </div>
       </div>
 
       {productPages.map((pp, index) => (
