@@ -345,7 +345,9 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  /* Alt bölümler (renk balonları, beden, kumaş, fiyat) arasında sabit ve eşit boşluk —
+     space-between içerik yüksekliğine göre eşitsiz aralık bırakabiliyordu. */
+  gap: 3mm;
   text-align: left;
 }
 
@@ -405,19 +407,16 @@
 
 .ed-price-block {
   flex-shrink: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 2mm;
 }
 
 .ed-price-label {
   font-size: 9px;
   font-weight: 700;
-  margin-bottom: 1mm;
-}
-
-.ed-price-row {
-  display: flex;
-  justify-content: flex-start;
-  align-items: baseline;
-  gap: 2.5mm;
 }
 
 .ed-page-footer {

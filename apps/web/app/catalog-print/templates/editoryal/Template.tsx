@@ -368,12 +368,10 @@ function EdProductPage({
                   </div>
                 )}
                 <div className="ed-price-block">
-                  <div className="ed-price-label">Toptan Fiyat</div>
-                  <div className="ed-price-row">
-                    <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
-                    <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
-                    <span className="ed-price-discount">%{Math.round(discountPct)}</span>
-                  </div>
+                  <span className="ed-price-label">Toptan Fiyat:</span>
+                  <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
+                  <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
+                  <span className="ed-price-discount">%{Math.round(discountPct)}</span>
                 </div>
               </div>
             </div>
