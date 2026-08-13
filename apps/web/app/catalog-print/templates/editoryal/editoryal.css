@@ -140,14 +140,14 @@
   padding: 6mm 6mm 0;
 }
 
-/* Alt bilgi satırı (logo/fiyat/sayfa no) ile sayfanın gerçek alt kenarı arasında
-   toplam 3mm boşluk kalsın diye üstteki .ed-product-page/.ed-about-page bottom
-   padding'i kaldırılıp buraya taşındı (üst/yan boşluklar değişmedi). */
 .ed-page-frame {
   height: 100%;
-  padding: 6mm 8mm 3mm;
+  /* Alt padding yok — alt bilgi satırı artık normal akışta değil, mutlak
+     konumlandırılıyor (bkz. ed-page-footer) ve kendi 3mm boşluğunu kendi taşıyor. */
+  padding: 6mm 8mm 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .ed-page-number {
@@ -190,6 +190,8 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  /* Mutlak konumlu ed-page-footer için yer ayır (3mm boşluk + ~7.5mm logo yüksekliği). */
+  padding-bottom: 10.5mm;
 }
 
 .ed-media-row {
@@ -367,9 +369,16 @@
 }
 
 .ed-page-footer {
-  position: relative;
-  flex-shrink: 0;
-  margin-top: 3mm;
+  /* page-frame'e göre (bkz. yukarısı) alta sabitlenir — üstündeki içerik ne kadar
+     uzasa da bu satır sayfa dışına itilip kırpılamaz. Mutlak konumlandırılan bir
+     elemanın offset'leri (left/right/bottom) page-frame'in padding'ini değil
+     border box'ını referans aldığı için, page-frame'in yatay/alt padding değerleri
+     (8mm/3mm) burada elle tekrarlanıyor. */
+  position: absolute;
+  left: 8mm;
+  right: 8mm;
+  bottom: 3mm;
+  height: 7.5mm;
 }
 
 .ed-page-footer .ed-page-number {
@@ -424,7 +433,7 @@
   display: flex;
   align-items: center;
   gap: 10mm;
-  padding: 0 12mm;
+  padding: 0 12mm 10.5mm;
 }
 
 .ed-rule-vertical {
