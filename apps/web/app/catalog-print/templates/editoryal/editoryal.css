@@ -51,6 +51,13 @@
 
   font-family: var(--ed-sans);
   color: var(--ed-ink);
+  /* Metropolis'in OpenType kerning tablosu bazı harf çiftlerini (örn. "ta", "ar")
+     özel olarak sıkıştırırken diğerlerini olduğu gibi bırakıyor — küçük punto baskıda
+     bu, aynı satırda kimi harflerin bitişik kimilerinin aralıklı görünmesine yol
+     açıyor. Kerning'i kapatmak tüm harf çiftlerini eşit (yazı tipinin doğal ilerleme
+     genişliğine göre) aralıklı yaparak bu düzensizliği gideriyor. */
+  font-kerning: none;
+  font-feature-settings: 'kern' 0;
 }
 
 /* --- Kapak sayfası --- */
