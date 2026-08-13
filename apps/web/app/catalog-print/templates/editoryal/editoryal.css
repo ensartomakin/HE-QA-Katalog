@@ -328,7 +328,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  text-align: right;
+  text-align: left;
 }
 
 .ed-panel-name {
@@ -380,7 +380,7 @@
 
 .ed-price-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: baseline;
   gap: 2.5mm;
 }
