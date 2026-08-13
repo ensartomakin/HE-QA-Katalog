@@ -305,6 +305,30 @@
   margin: 3mm 0;
 }
 
+/* Kural + ürün adı/açıklaması solda, beden/kumaş/fiyat sağda — kaynak taslaktaki
+   (referans görsel) iki sütunlu düzenle aynı. */
+.ed-info-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8mm;
+}
+
+.ed-info-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ed-info-right {
+  flex: 0 0 32%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+}
+
 .ed-panel-name {
   flex-shrink: 0;
   font-size: 13px;
@@ -318,7 +342,7 @@
   flex-shrink: 0;
   font-size: 11.5px;
   line-height: 1.6;
-  margin: 0 0 3mm;
+  margin: 0;
   /* Gerçek ürün açıklamaları çok uzun olabiliyor (bakım talimatı, ölçü tablosu vb.
      tek paragrafa gömülü) — sayfa düzenini bozmaması için satır sayısı sabitleniyor. */
   display: -webkit-box;
@@ -327,22 +351,10 @@
   overflow: hidden;
 }
 
-.ed-panel-meta {
-  flex-shrink: 0;
-  margin-top: auto;
-}
-
 .ed-size-line,
 .ed-fabric-line {
   font-size: 9.5px;
   line-height: 1.6;
-  margin-bottom: 1mm;
-}
-
-.ed-size-line {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
 }
 
 .ed-size-line span + span {
@@ -354,18 +366,21 @@
   font-weight: 700;
 }
 
-.ed-size-boxes {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 1mm;
-  margin-left: 1.5mm;
+.ed-price-block {
+  flex-shrink: 0;
 }
 
-.ed-size-box {
-  display: inline-block;
-  border: 1px solid var(--ed-ink);
-  padding: 0.5mm 1.8mm;
+.ed-price-label {
+  font-size: 9px;
   font-weight: 700;
+  margin-bottom: 1mm;
+}
+
+.ed-price-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 2.5mm;
 }
 
 .ed-page-footer {
@@ -396,16 +411,6 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-}
-
-.ed-price-line {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: baseline;
-  gap: 2.5mm;
 }
 
 .ed-price-original {
