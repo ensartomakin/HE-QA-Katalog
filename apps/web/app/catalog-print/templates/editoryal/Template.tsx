@@ -63,6 +63,41 @@ function extractFabricComposition(description: string | null): string | null {
   return match[0].replace(/\s+/g, ' ').trim();
 }
 
+// Yüzde kalıbı olmadan sadece malzeme adı geçen açıklamalar için (örn. "doğal pamuktan
+// yapılmıştır" → "Pamuk") — yaygın kumaş adlarının Türkçe çekim ekleriyle (pamuktan,
+// pamuklu, pamuğun vb.) eşleşen kaba bir liste; açıklamada en erken geçen malzemeye göre
+// tek bir kelimeye indirgenir.
+// Küçük harfe çevrilmiş metne karşı eşleştiriliyor (bkz. aşağı) — JS'in /i bayrağı
+// Türkçe büyük "İ" harfini doğru küçültmediği için (İ → yanlışlıkla "i̇" olur),
+// içerik önce toLocaleLowerCase('tr') ile normalize ediliyor.
+const FABRIC_MATERIALS: { name: string; re: RegExp }[] = [
+  { name: 'Pamuk', re: /pamu[kğ]\w*/ },
+  { name: 'Polyester', re: /polyester\w*/ },
+  { name: 'Elastan', re: /elastan\w*/ },
+  { name: 'Poliamid', re: /poliamid\w*/ },
+  { name: 'Viskon', re: /visko[nz]\w*/ },
+  { name: 'Keten', re: /keten\w*/ },
+  { name: 'Yün', re: /y[üu]n\w*/ },
+  { name: 'İpek', re: /ipek\w*/ },
+  { name: 'Modal', re: /modal\w*/ },
+  { name: 'Naylon', re: /naylon\w*/ },
+  { name: 'Likra', re: /likra\w*|spandex\w*/ },
+  { name: 'Rayon', re: /rayon\w*/ },
+];
+
+function extractFabricMaterialFallback(description: string | null): string | null {
+  if (!description) return null;
+  const lower = description.toLocaleLowerCase('tr');
+  let best: { index: number; name: string } | null = null;
+  for (const { name, re } of FABRIC_MATERIALS) {
+    const match = lower.match(re);
+    if (match && match.index !== undefined && (!best || match.index < best.index)) {
+      best = { index: match.index, name };
+    }
+  }
+  return best?.name ?? null;
+}
+
 interface MediaItem {
   key: string;
   url: string;
@@ -298,7 +333,10 @@ function EdProductPage({
 }) {
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
-  const fabricComposition = extractFabricComposition(item.product.description) ?? item.product.fabricInfo;
+  const fabricComposition =
+    extractFabricComposition(item.product.description) ??
+    extractFabricMaterialFallback(item.product.description) ??
+    item.product.fabricInfo;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -315,6 +353,13 @@ function EdProductPage({
                 {descriptionExcerpt && <p className="ed-panel-description">{descriptionExcerpt}</p>}
               </div>
               <div className="ed-info-right">
+                {item.product.colors.length > 0 && (
+                  <div className="ed-color-dots">
+                    {item.product.colors.map((c) => (
+                      <span key={c.id} className="ed-color-dot" style={{ background: c.hexPreview ?? '#d8d2c2' }} title={c.name} />
+                    ))}
+                  </div>
+                )}
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
                 {fabricComposition && (
                   <div className="ed-fabric-line">
