@@ -72,6 +72,7 @@ function extractFabricComposition(description: string | null): string | null {
 // içerik önce toLocaleLowerCase('tr') ile normalize ediliyor.
 const FABRIC_MATERIALS: { name: string; re: RegExp }[] = [
   { name: 'Pamuk', re: /pamu[kğ]\w*/ },
+  { name: 'Paraşüt Kumaş', re: /paraşüt\w*/ },
   { name: 'Polyester', re: /polyester\w*/ },
   { name: 'Elastan', re: /elastan\w*/ },
   { name: 'Poliamid', re: /poliamid\w*/ },
