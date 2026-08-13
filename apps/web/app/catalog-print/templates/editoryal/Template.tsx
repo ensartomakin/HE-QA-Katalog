@@ -109,14 +109,7 @@ function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelTe
     <div className="ed-size-line">
       {sizes.length > 0 && (
         <span>
-          <strong>Beden:</strong>
-          <span className="ed-size-boxes">
-            {sizes.map((s) => (
-              <span key={s} className="ed-size-box">
-                {s}
-              </span>
-            ))}
-          </span>
+          <strong>Beden:</strong> {sizes.join(' ')}
         </span>
       )}
       {lengthLabelText && (
@@ -284,15 +277,27 @@ function EdProductPage({
 
           <div className="ed-info-col">
             <div className="ed-rule" />
-            <div className="ed-panel-name">{item.product.name}</div>
-            {descriptionExcerpt && <p className="ed-panel-description">{descriptionExcerpt}</p>}
-            <div className="ed-panel-meta">
-              <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
-              {item.product.fabricInfo && (
-                <div className="ed-fabric-line">
-                  <strong>Kumaş:</strong> {item.product.fabricInfo}
+            <div className="ed-info-row">
+              <div className="ed-info-left">
+                <div className="ed-panel-name">{item.product.name}</div>
+                {descriptionExcerpt && <p className="ed-panel-description">{descriptionExcerpt}</p>}
+              </div>
+              <div className="ed-info-right">
+                <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
+                {item.product.fabricInfo && (
+                  <div className="ed-fabric-line">
+                    <strong>Kumaş:</strong> {item.product.fabricInfo}
+                  </div>
+                )}
+                <div className="ed-price-block">
+                  <div className="ed-price-label">Toptan Fiyat</div>
+                  <div className="ed-price-row">
+                    <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
+                    <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
+                    <span className="ed-price-discount">%{Math.round(discountPct)}</span>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -300,11 +305,6 @@ function EdProductPage({
         <div className="ed-page-footer">
           <div className="ed-footer-brand">
             <EdBrandMark brandLogoUrl={brandLogoUrl} variant="footer" />
-          </div>
-          <div className="ed-price-line">
-            <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
-            <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
-            <span className="ed-price-discount">%{Math.round(discountPct)}</span>
           </div>
           <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
         </div>
