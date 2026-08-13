@@ -173,7 +173,7 @@
   text-align: center;
   margin-top: 3mm;
   font-size: 11px;
-  color: var(--ed-muted);
+  color: var(--ed-ink);
 }
 
 .ed-rule {
@@ -438,7 +438,7 @@
 }
 
 .ed-price-label {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 700;
 }
 
@@ -479,9 +479,9 @@
 }
 
 .ed-price-value {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--ed-red);
+  color: var(--ed-ink);
 }
 
 .ed-price-discount {

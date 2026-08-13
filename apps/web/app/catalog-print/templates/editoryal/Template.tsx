@@ -46,6 +46,58 @@ function stripColorFromName(name: string, colorLabel: string | null): string {
   return name.slice(0, name.length - trimmedColor.length).trim();
 }
 
+// hexPreview boş bırakılan renk varyantları için son çare — rengin adı gerçek bir
+// renk sözlüğünde bulunuyorsa (örn. "İndigo", "Karamel") onun tonunu kullan; "açık/koyu"
+// gibi tonlama önekleri bulunamazsa sıyrılıp tekrar denenir. Sözlükte hiçbir eşleşme
+// yoksa (örn. "Çiçekli Desen", "Leopar" gibi bir baskı/desen adıysa) null döner — bu
+// durumda çağıran taraf gerçekten "tanımlanamayan" bir varyant olduğunu bilir.
+const COLOR_NAME_HEX: Record<string, string> = {
+  siyah: '#1a1a1a',
+  beyaz: '#f5f4ef',
+  gri: '#8a8a86',
+  antrasit: '#3a3a3a',
+  füme: '#5c5c5c',
+  lacivert: '#1b2a4a',
+  mavi: '#3a6ea5',
+  indigo: '#3f4b8a',
+  turkuaz: '#2fa3a3',
+  petrol: '#1f5c5c',
+  yeşil: '#4a7c3a',
+  haki: '#78815c',
+  zeytin: '#6b6b3a',
+  sarı: '#e8c547',
+  hardal: '#c9a227',
+  turuncu: '#d9722c',
+  kahverengi: '#6b4a34',
+  kahve: '#6b4a34',
+  karamel: '#a86a3d',
+  taba: '#8a5a34',
+  vizon: '#8a7560',
+  bej: '#d9cdb8',
+  krem: '#e8dfc8',
+  ekru: '#e4dcc8',
+  taş: '#c9c0a8',
+  kırmızı: '#c0322f',
+  bordo: '#6e1f2a',
+  pembe: '#d98aa3',
+  'gül kurusu': '#b5757a',
+  mor: '#6a4c8a',
+  lila: '#a893c9',
+  altın: '#c9a227',
+  gümüş: '#b0b0ac',
+};
+const COLOR_NAME_MODIFIERS = ['açık', 'koyu', 'orta', 'parlak', 'mat'];
+
+function resolveColorHex(name: string): string | null {
+  const lower = name.toLocaleLowerCase('tr').trim();
+  if (COLOR_NAME_HEX[lower]) return COLOR_NAME_HEX[lower];
+  const words = lower.split(/\s+/).filter((w) => !COLOR_NAME_MODIFIERS.includes(w));
+  const stripped = words.join(' ');
+  if (COLOR_NAME_HEX[stripped]) return COLOR_NAME_HEX[stripped];
+  const lastWord = words[words.length - 1];
+  return (lastWord && COLOR_NAME_HEX[lastWord]) || null;
+}
+
 function extractFabricExcerpt(description: string | null): string | null {
   if (!description) return null;
   const sentences = description.split(/(?<=[.!?])\s+/);
@@ -370,16 +422,17 @@ function EdProductPage({
               <div className="ed-info-right">
                 {item.product.colors.length > 0 && (
                   <div className="ed-color-dots">
-                    {item.product.colors.map((c) =>
-                      c.hexPreview ? (
-                        <span key={c.id} className="ed-color-dot" style={{ background: c.hexPreview }} title={c.name} />
+                    {item.product.colors.map((c) => {
+                      const hex = c.hexPreview ?? resolveColorHex(c.name);
+                      return hex ? (
+                        <span key={c.id} className="ed-color-dot" style={{ background: hex }} title={c.name} />
                       ) : (
-                        // Desen/baskı adıyla anılan (örn. "Çiçekli", "Leopar Desen") ve tek bir
-                        // renge indirgenemeyen varyantlar için düz bir renk yerine, "bu bir renk
-                        // değil desen" mesajını veren çok renkli bir halka gösteriliyor.
+                        // Adı bilinen bir renk sözlüğünde eşleşmeyen (yani gerçekten desen/baskı
+                        // adıyla anılan, örn. "Çiçekli", "Leopar Desen") varyantlar için düz bir
+                        // renk yerine "bu bir renk değil desen" mesajını veren çok renkli bir halka.
                         <span key={c.id} className="ed-color-dot ed-color-dot--pattern" title={c.name} />
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 )}
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
