@@ -345,10 +345,24 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  /* Alt bölümler (renk balonları, beden, kumaş, fiyat) arasında sabit ve eşit boşluk —
-     space-between içerik yüksekliğine göre eşitsiz aralık bırakabiliyordu. */
-  gap: 3mm;
   text-align: left;
+}
+
+/* Renk balonlarıyla beden arası 3mm, beden/kumaş/fiyat kendi arasında 1.5mm — gap
+   yerine margin-top kullanılıyor ki bu iki değer birbirinden farklı olabilsin. İlk
+   sırada hangi bölüm olursa olsun (renk balonu olmayan ürünlerde beden ilk sıraya
+   gelir) üst boşluk almasın diye ayrıca sıfırlanıyor. */
+.ed-info-right > *:first-child {
+  margin-top: 0 !important;
+}
+
+.ed-info-right .ed-size-line {
+  margin-top: 3mm;
+}
+
+.ed-info-right .ed-fabric-line,
+.ed-info-right .ed-price-block {
+  margin-top: 1.5mm;
 }
 
 .ed-panel-name {
