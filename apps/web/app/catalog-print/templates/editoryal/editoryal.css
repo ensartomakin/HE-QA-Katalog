@@ -382,6 +382,9 @@
   font-size: 11.5px;
   line-height: 1.6;
   margin: 0;
+  /* Görsel düzeninden bağımsız, sabit bir genişlikte kesiliyor — kaynak görselde
+     işaretlenen sınıra (2. ve 3. görsel arası, satır genişliğinin yarısı) göre. */
+  max-width: 136mm;
   /* Gerçek ürün açıklamaları çok uzun olabiliyor (bakım talimatı, ölçü tablosu vb.
      tek paragrafa gömülü) — sayfa düzenini bozmaması için satır sayısı sabitleniyor. */
   display: -webkit-box;
