@@ -348,8 +348,8 @@
   text-align: left;
 }
 
-/* Renk balonlarıyla beden arası 3mm, beden/kumaş/fiyat kendi arasında 1.5mm — gap
-   yerine margin-top kullanılıyor ki bu iki değer birbirinden farklı olabilsin. İlk
+/* Renk balonlarıyla beden arası 3mm, beden-kumaş arası 1mm, kumaş-fiyat arası 0.5mm —
+   gap yerine margin-top kullanılıyor ki bu değerler birbirinden farklı olabilsin. İlk
    sırada hangi bölüm olursa olsun (renk balonu olmayan ürünlerde beden ilk sıraya
    gelir) üst boşluk almasın diye ayrıca sıfırlanıyor. */
 .ed-info-right > *:first-child {
@@ -360,9 +360,12 @@
   margin-top: 3mm;
 }
 
-.ed-info-right .ed-fabric-line,
+.ed-info-right .ed-fabric-line {
+  margin-top: 1mm;
+}
+
 .ed-info-right .ed-price-block {
-  margin-top: 1.5mm;
+  margin-top: 0.5mm;
 }
 
 .ed-panel-name {
@@ -402,6 +405,12 @@
   border-radius: 50%;
   border: 1px solid var(--ed-border);
   flex-shrink: 0;
+}
+
+/* hexPreview'i olmayan (desen/baskı adıyla anılan) varyantlar için tek renk yerine
+   çok renkli bir halka — "bu bir renk değil desen" mesajını verir. */
+.ed-color-dot--pattern {
+  background: conic-gradient(from 0deg, #e24b4a, #ef9f27, #639922, #378add, #7f77dd, #d4537e, #e24b4a);
 }
 
 .ed-size-line,
