@@ -190,8 +190,10 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  /* Mutlak konumlu ed-page-footer için yer ayır (3mm boşluk + ~7.5mm logo yüksekliği). */
-  padding-bottom: 10.5mm;
+  /* Mutlak konumlu ed-page-footer için yer ayır: içerik ile logo arasında 3mm +
+     footer'ın kendi 3mm (page-frame'e olan) boşluğu + ~7.5mm logo yüksekliği —
+     görsellerle kural arasındaki üst boşlukla aynı 3mm değere sabitlenmiş olsun diye. */
+  padding-bottom: 14mm;
 }
 
 .ed-media-row {
@@ -335,7 +337,7 @@
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
-  margin-bottom: 2.5mm;
+  margin-bottom: 3mm;
 }
 
 .ed-panel-description {
@@ -438,7 +440,7 @@
   display: flex;
   align-items: center;
   gap: 10mm;
-  padding: 0 12mm 10.5mm;
+  padding: 0 12mm 14mm;
 }
 
 .ed-rule-vertical {
