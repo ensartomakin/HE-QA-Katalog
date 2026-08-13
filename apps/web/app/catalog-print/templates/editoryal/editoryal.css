@@ -150,6 +150,33 @@
   position: relative;
 }
 
+/* Sol üst köşedeki sabit künye ("HE-QA / <başlık>") — page-frame'e göre mutlak
+   konumlandırılıyor (bkz. ed-page-footer'daki aynı teknik), üstteki 6mm+6mm boşluk
+   içine, görsellerin sol kenarıyla hizalı. */
+.ed-running-header {
+  position: absolute;
+  top: 2mm;
+  left: 8mm;
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.ed-running-header-rule {
+  width: 1px;
+  height: 8px;
+  background: var(--ed-red);
+}
+
+.ed-running-header-title {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .ed-page-number {
   flex-shrink: 0;
   text-align: center;
