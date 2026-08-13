@@ -117,6 +117,20 @@ function EdBrandMark({ brandLogoUrl, variant }: { brandLogoUrl: string | null; v
   return <span>HE-QA</span>;
 }
 
+// Sayfanın sol üst köşesindeki sabit "HE-QA / <başlık>" ifadesi — kaynak taslaktaki
+// (referans görsel) her iç sayfanın üstünde tekrar eden künye ile aynı. "HE-QA" ve
+// kırmızı ayraç çizgisi sabit; ardından gelen metin kullanıcının kapak başlığı alanına
+// girdiği değer (örn. "AW/24-25"), girilmemişse katalog adına düşer.
+function EdRunningHeader({ title }: { title: string }) {
+  return (
+    <div className="ed-running-header">
+      <span className="ed-running-header-brand">HE-QA</span>
+      <span className="ed-running-header-rule" />
+      <span className="ed-running-header-title">{title}</span>
+    </div>
+  );
+}
+
 function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelText: string | null }) {
   if (sizes.length === 0 && !lengthLabelText) return null;
   return (
@@ -271,6 +285,7 @@ function EdProductPage({
   currency,
   discountPct,
   brandLogoUrl,
+  headerTitle,
   pageNumber,
 }: {
   item: CatalogItem;
@@ -278,6 +293,7 @@ function EdProductPage({
   currency: CatalogDetail['currency'];
   discountPct: number;
   brandLogoUrl: string | null;
+  headerTitle: string;
   pageNumber: number;
 }) {
   const sizeLabels = item.product.sizes.map((s) => s.label);
@@ -287,6 +303,7 @@ function EdProductPage({
   return (
     <div className="pdf-page ed-product-page">
       <div className="ed-page-frame">
+        <EdRunningHeader title={headerTitle} />
         <div className="ed-product-layout">
           <EdMediaLayout item={item} chunk={mediaChunk} />
 
@@ -328,10 +345,19 @@ function EdProductPage({
   );
 }
 
-function EdAboutPage({ brandLogoUrl, pageNumber }: { brandLogoUrl: string | null; pageNumber: number }) {
+function EdAboutPage({
+  brandLogoUrl,
+  headerTitle,
+  pageNumber,
+}: {
+  brandLogoUrl: string | null;
+  headerTitle: string;
+  pageNumber: number;
+}) {
   return (
     <div className="pdf-page ed-about-page">
       <div className="ed-page-frame">
+        <EdRunningHeader title={headerTitle} />
         <div className="ed-about-layout">
           <div className="ed-about-col">
             <div className="ed-about-heading">HAKKIMIZDA</div>
@@ -384,6 +410,7 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
     }))
   );
   const totalPages = productPages.length + 2; // kapak + ürün sayfaları + hakkımızda/iletişim
+  const headerTitle = catalog.coverTitle || catalog.name;
 
   return (
     <div className="catalog-print editoryal">
@@ -409,11 +436,12 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
           currency={catalog.currency}
           discountPct={catalog.discountPct}
           brandLogoUrl={settings.brandLogoUrl}
+          headerTitle={headerTitle}
           pageNumber={index + 2}
         />
       ))}
 
-      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} pageNumber={totalPages} />
+      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} headerTitle={headerTitle} pageNumber={totalPages} />
     </div>
   );
 }
