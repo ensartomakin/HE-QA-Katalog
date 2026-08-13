@@ -49,6 +49,20 @@ function extractFabricExcerpt(description: string | null): string | null {
   return result || null;
 }
 
+// Ürün açıklamaları genelde kumaş içeriğiyle başlıyor (örn. "%100 polyester içerikli...",
+// "%80 poliamid ve %20 elastan karışımıyla üretilen..."). Kumaş paneli için bu, ayrı bir
+// fabricInfo alanına güvenmek yerine açıklama içinden yüzde+malzeme kalıpları çıkarılıp
+// kısa bir özet ("%100 polyester", "%80 poliamid ve %20 elastan") olarak gösteriliyor.
+const FABRIC_COMPOSITION_ITEM = '%\\s*\\d+\\s*[a-zA-ZçÇğĞıİöÖşŞüÜ]+';
+const FABRIC_COMPOSITION_RE = new RegExp(`${FABRIC_COMPOSITION_ITEM}(?:\\s*(?:,|ve)\\s*${FABRIC_COMPOSITION_ITEM})*`, 'i');
+
+function extractFabricComposition(description: string | null): string | null {
+  if (!description) return null;
+  const match = description.match(FABRIC_COMPOSITION_RE);
+  if (!match) return null;
+  return match[0].replace(/\s+/g, ' ').trim();
+}
+
 interface MediaItem {
   key: string;
   url: string;
@@ -268,6 +282,7 @@ function EdProductPage({
 }) {
   const sizeLabels = item.product.sizes.map((s) => s.label);
   const descriptionExcerpt = extractFabricExcerpt(item.product.description);
+  const fabricComposition = extractFabricComposition(item.product.description) ?? item.product.fabricInfo;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -284,9 +299,9 @@ function EdProductPage({
               </div>
               <div className="ed-info-right">
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
-                {item.product.fabricInfo && (
+                {fabricComposition && (
                   <div className="ed-fabric-line">
-                    <strong>Kumaş:</strong> {item.product.fabricInfo}
+                    <strong>Kumaş:</strong> {fabricComposition}
                   </div>
                 )}
                 <div className="ed-price-block">
