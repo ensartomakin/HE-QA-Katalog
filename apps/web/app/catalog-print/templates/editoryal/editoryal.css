@@ -332,7 +332,10 @@
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
-  letter-spacing: 0.015em;
+  /* Kalın + büyük harf + küçük punto kombinasyonunda font, harfleri (örn. "DETAYLI"
+     içindeki e-t) neredeyse bitişik ilerleme genişliğiyle çiziyor; kerning kapalı
+     olsa da bu tabana yakın aralık kalıyor, bu yüzden burada belirgin biçimde açılıyor. */
+  letter-spacing: 0.04em;
   margin-bottom: 3mm;
 }
 
