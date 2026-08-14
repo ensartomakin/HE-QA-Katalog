@@ -266,7 +266,11 @@
 .ed-info-col .ed-rule {
   width: 32mm;
   height: 2.5px;
-  margin: 3mm 0;
+  /* Alt boşluk 3mm değil ~2.07mm: line-box'ın üstü ile başlığın gerçek harf
+     gövdesi (Türkçe noktalı harflerin üstündeki nokta değil, "A" gibi düz bir
+     harfin üst kenarı) arasında ~0.93mm boşluk fontun kendi ölçümlerinden
+     geliyor — bu fark burada düşülerek görsel boşluk tam 3mm'ye getiriliyor. */
+  margin: 3mm 0 2.07mm;
 }
 
 /* Kural + ürün adı/açıklaması solda, beden/kumaş/fiyat sağda — kaynak taslaktaki
@@ -292,6 +296,12 @@
   display: flex;
   flex-direction: column;
   text-align: left;
+  /* Kutu modelinde renk balonları ürün adıyla aynı satırda (row) başlıyor, ama
+     ürün adının gerçek harf gövdesi (Türkçe noktalı harflerin üstü değil, "A" gibi
+     düz bir harfin üst kenarı) satır kutusunun ~0.93mm altından başlıyor (bkz.
+     ed-info-col .ed-rule ölçümü) — balonlar bir şekil olduğu için bu farkı taşımıyor.
+     Bu boşluk eklenerek ikisinin görsel üstü hizalanıyor. */
+  padding-top: 0.93mm;
 }
 
 /* Renk balonlarıyla beden arası 3mm, beden-kumaş arası 1mm, kumaş-fiyat arası 0.5mm —
