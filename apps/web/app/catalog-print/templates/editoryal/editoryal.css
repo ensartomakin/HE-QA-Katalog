@@ -82,9 +82,11 @@
 
 .ed-page-frame {
   height: 100%;
-  /* Alt padding yok — alt bilgi satırı artık normal akışta değil, mutlak
-     konumlandırılıyor (bkz. ed-page-footer) ve kendi 3mm boşluğunu kendi taşıyor. */
-  padding: 6mm 8mm 0;
+  /* Üst padding yok — künye (ed-running-header), sayfanın üst kenarı (ed-product-page'in
+     6mm boşluğu) ile görselin başladığı nokta arasına kendi margin-bottom'uyla ortalanıyor.
+     Alt padding da yok — alt bilgi satırı normal akışta değil, mutlak konumlandırılıyor
+     (bkz. ed-page-footer) ve kendi 3mm boşluğunu kendi taşıyor. */
+  padding: 0 8mm 0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -92,16 +94,18 @@
 
 /* Sol üst köşedeki sabit künye ("HE-QA / <başlık>") — page-frame'in normal akışında
    ilk eleman, görsellerin sol kenarıyla hizalı (page-frame'in kendi sol padding'i
-   sayesinde). Altındaki görselle arasında sabit 3px boşluk bırakır. */
+   sayesinde). Sayfanın üst kenarı (ed-product-page'in 6mm boşluğu) ile görselin
+   başladığı nokta arasına dikey olarak ortalanacak şekilde her iki yönde de 6mm
+   boşluk bırakır (6 + 4.23 + 6 ≈ önceki toplam boşlukla aynı, görsel yer değiştirmez). */
 .ed-running-header {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 1.5mm;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
+  margin-bottom: 6mm;
   letter-spacing: 0.02em;
-  margin-bottom: 3px;
 }
 
 .ed-running-header-rule {
@@ -281,7 +285,9 @@
 }
 
 .ed-info-right {
-  flex: 0 0 24.3%;
+  /* Başlangıç noktası referans (24.3%) noktasından 5mm sola kaydırılmış olacak
+     şekilde genişletildi (satır genişliği 269mm üzerinden hesaplandı). */
+  flex: 0 0 26.16%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -359,7 +365,6 @@
 .ed-size-line,
 .ed-fabric-line {
   font-size: 11.5px;
-  font-weight: 700;
   line-height: 1.6;
 }
 
