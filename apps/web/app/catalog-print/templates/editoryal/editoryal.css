@@ -2,6 +2,27 @@
    dayanır: A4 yatay (297x210mm), sayfa başına 1 ürün, çok sayıda ürün fotoğrafı,
    Türkçe+İngilizce metin, kırmızı vurgu rengi. */
 
+/* Sistem sans-serif yığını (Segoe UI/Roboto/-apple-system) PDF'i üreten sunucuda
+   yüklü olmayabiliyor — Chromium başka bir fonta düşüyor ve o fontun kalın yüzü
+   olmadığından font-weight:700 etkisiz kalıp PDF'te düz (bold olmayan) basılıyordu.
+   Bunu önlemek için Inter (SIL OFL, apps/web/public/fonts/inter) projeye gömülü —
+   sunucuda hangi font yüklü olursa olsun aynı Regular/Bold/Black yüzler garanti. */
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter/Inter-Regular.woff2') format('woff2');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter/Inter-Bold.woff2') format('woff2');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter/Inter-Black.woff2') format('woff2');
+  font-weight: 900;
+}
+
 .editoryal {
   /* A4 yatay — bkz. print-base.css .catalog-print varsayılanı (210mm/297mm, dikey). */
   --page-width: 297mm;
@@ -15,7 +36,7 @@
   --ed-muted: #8a8a86;
   --ed-border: rgba(26, 26, 26, 0.75);
 
-  --ed-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --ed-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   font-family: var(--ed-sans);
   color: var(--ed-ink);

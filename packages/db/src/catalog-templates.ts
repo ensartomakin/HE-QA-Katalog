@@ -22,7 +22,7 @@ export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
   {
     id: 'editoryal',
     name: 'Editoryal',
-    description: 'Grafik ekibinin InDesign taslağına dayanır: A4 yatay, sayfa başına 1 ürün, çok sayıda ürün fotoğrafı, Türkçe+İngilizce metin, Metropolis fontu ve kırmızı vurgu rengi.',
+    description: 'Grafik ekibinin InDesign taslağına dayanır: A4 yatay, sayfa başına 1 ürün, çok sayıda ürün fotoğrafı, Türkçe+İngilizce metin, Inter fontu ve kırmızı vurgu rengi.',
     orientation: 'landscape',
   },
   {
