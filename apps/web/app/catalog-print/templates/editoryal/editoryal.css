@@ -1,37 +1,6 @@
 /* "Editoryal" şablonu — grafik ekibinin InDesign taslağına (autumn 24 katalog ek.idml)
    dayanır: A4 yatay (297x210mm), sayfa başına 1 ürün, çok sayıda ürün fotoğrafı,
-   Türkçe+İngilizce metin, Metropolis + Minion Pro fontları, kırmızı vurgu rengi. */
-
-@font-face {
-  font-family: 'Metropolis';
-  src: url('/fonts/metropolis/Metropolis-Light.otf') format('opentype');
-  font-weight: 300;
-}
-@font-face {
-  font-family: 'Metropolis';
-  src: url('/fonts/metropolis/Metropolis-Regular.otf') format('opentype');
-  font-weight: 400;
-}
-@font-face {
-  font-family: 'Metropolis';
-  src: url('/fonts/metropolis/Metropolis-SemiBold.otf') format('opentype');
-  font-weight: 600;
-}
-@font-face {
-  font-family: 'Metropolis';
-  src: url('/fonts/metropolis/Metropolis-Bold.otf') format('opentype');
-  font-weight: 700;
-}
-@font-face {
-  font-family: 'Metropolis';
-  src: url('/fonts/metropolis/Metropolis-Black.otf') format('opentype');
-  font-weight: 900;
-}
-@font-face {
-  font-family: 'Minion Pro';
-  src: url('/fonts/minion/MinionPro-Regular.otf') format('opentype');
-  font-weight: 400;
-}
+   Türkçe+İngilizce metin, kırmızı vurgu rengi. */
 
 .editoryal {
   /* A4 yatay — bkz. print-base.css .catalog-print varsayılanı (210mm/297mm, dikey). */
@@ -46,18 +15,10 @@
   --ed-muted: #8a8a86;
   --ed-border: rgba(26, 26, 26, 0.75);
 
-  --ed-sans: 'Metropolis', ui-sans-serif, system-ui, sans-serif;
-  --ed-serif: 'Minion Pro', Georgia, 'Times New Roman', serif;
+  --ed-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 
   font-family: var(--ed-sans);
   color: var(--ed-ink);
-  /* Metropolis'in OpenType kerning tablosu bazı harf çiftlerini (örn. "ta", "ar")
-     özel olarak sıkıştırırken diğerlerini olduğu gibi bırakıyor — küçük punto baskıda
-     bu, aynı satırda kimi harflerin bitişik kimilerinin aralıklı görünmesine yol
-     açıyor. Kerning'i kapatmak tüm harf çiftlerini eşit (yazı tipinin doğal ilerleme
-     genişliğine göre) aralıklı yaparak bu düzensizliği gideriyor. */
-  font-kerning: none;
-  font-feature-settings: 'kern' 0;
 }
 
 /* --- Kapak sayfası --- */
@@ -332,10 +293,6 @@
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1.2;
-  /* Kalın + büyük harf + küçük punto kombinasyonunda font, harfleri (örn. "DETAYLI"
-     içindeki e-t) neredeyse bitişik ilerleme genişliğiyle çiziyor; kerning kapalı
-     olsa da bu tabana yakın aralık kalıyor, bu yüzden burada belirgin biçimde açılıyor. */
-  letter-spacing: 0.04em;
   margin-bottom: 3mm;
 }
 
@@ -343,7 +300,6 @@
   flex-shrink: 0;
   font-size: 11.5px;
   line-height: 1.6;
-  letter-spacing: 0.01em;
   margin: 0;
   /* Görsel düzeninden bağımsız, sabit bir genişlikte kesiliyor — kaynak görselde
      işaretlenen sınıra (2. ve 3. görsel arası, satır genişliğinin yarısı) göre. */
@@ -383,7 +339,6 @@
 .ed-fabric-line {
   font-size: 9.5px;
   line-height: 1.6;
-  letter-spacing: 0.01em;
 }
 
 .ed-size-line span + span {
@@ -407,7 +362,6 @@
 .ed-price-label {
   font-size: 9.5px;
   font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
 .ed-page-footer {
@@ -444,21 +398,18 @@
   font-size: 9px;
   color: var(--ed-ink);
   text-decoration: line-through;
-  letter-spacing: 0.01em;
 }
 
 .ed-price-value {
   font-size: 12px;
   font-weight: 700;
   color: var(--ed-red);
-  letter-spacing: 0.01em;
 }
 
 .ed-price-discount {
   font-size: 11px;
   font-weight: 700;
   color: var(--ed-red);
-  letter-spacing: 0.01em;
 }
 
 /* --- Hakkımızda / İletişim sayfası --- */
