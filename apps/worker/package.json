@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@he-qa/db": "*",
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",

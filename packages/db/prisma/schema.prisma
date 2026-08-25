@@ -20,6 +20,7 @@ model Product {
   category           Category  @relation(fields: [categoryId], references: [id])
   description        String?
   descriptionEn      String?
+  shortDescription   String?   // Katalog PDF'inde gösterilen ~20 kelimelik özet — AI ile üretilir, editör düzenleyebilir (bkz. products.routes.ts generate-short-description)
   nameEn             String?
   lengthLabel        String?   // "85 cm" gibi serbest metin — editoryal şablonun "Boy" alanı, manuel girilir
   fabricInfo         String?

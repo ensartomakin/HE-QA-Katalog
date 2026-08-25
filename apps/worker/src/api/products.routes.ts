@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { asyncHandler } from '../utils/async-handler';
+import { generateShortDescription } from '../services/short-description.service';
+import { logger } from '../utils/logger';
 
 export const productsRouter = Router();
 
@@ -70,6 +72,32 @@ productsRouter.get(
   })
 );
 
+// Ürün Detay ekranındaki "AI ile Oluştur" butonu — açıklamadan ~20 kelimelik özet üretir
+// ve DÖNDÜRÜR, kaydetmez; editör metni gözden geçirip düzenledikten sonra normal PATCH
+// akışıyla (shortDescription alanı) kaydeder.
+productsRouter.post(
+  '/:id/generate-short-description',
+  asyncHandler(async (req: Request, res: Response) => {
+    const product = await prisma.product.findUnique({ where: { id: req.params.id }, select: { description: true } });
+    if (!product) {
+      res.status(404).json({ error: 'Ürün bulunamadı' });
+      return;
+    }
+    if (!product.description) {
+      res.status(400).json({ error: 'Ürünün açıklaması yok, özet üretilemiyor.' });
+      return;
+    }
+    try {
+      const shortDescription = await generateShortDescription(product.description);
+      res.json({ shortDescription });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[products/generate-short-description] ${message}`);
+      res.status(502).json({ error: message });
+    }
+  })
+);
+
 // '/:id' kasıtlı olarak dosyanın en altında — '/categories' ve '/sort-order' gibi sabit
 // path'lerden SONRA tanımlanmalı, yoksa Express bunları id="categories" gibi yakalar.
 productsRouter.get(
@@ -90,6 +118,7 @@ productsRouter.get(
 const productUpdateSchema = z.object({
   description: z.string().nullable().optional(),
   descriptionEn: z.string().nullable().optional(),
+  shortDescription: z.string().nullable().optional(),
   nameEn: z.string().nullable().optional(),
   lengthLabel: z.string().nullable().optional(),
   fabricInfo: z.string().nullable().optional(),
