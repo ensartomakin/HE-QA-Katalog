@@ -10,16 +10,6 @@ export interface CatalogTemplateMeta {
 
 export const CATALOG_TEMPLATES: CatalogTemplateMeta[] = [
   {
-    id: 'zarif',
-    name: 'Zarif',
-    description: 'Kapak fotoğrafı + sayfa başına 4 ürünlük vitrin: ana görsel, renk varyantı küçük görselleri, toptan fiyat, beden ve kumaş bilgisi.',
-  },
-  {
-    id: 'he-qa-website',
-    name: 'HE-QA Website',
-    description: 'he-qa.com mağaza vitrinindeki ürün kartı stilini yansıtır: Inter fontu, sarı fiyat rozeti, çerçevesiz ürün görselleri, ince siyah çerçeveli metin kutuları.',
-  },
-  {
     id: 'editoryal',
     name: 'Editoryal',
     description: 'Grafik ekibinin InDesign taslağına dayanır: A4 yatay, sayfa başına 1 ürün, çok sayıda ürün fotoğrafı, Türkçe+İngilizce metin, Inter fontu ve kırmızı vurgu rengi.',

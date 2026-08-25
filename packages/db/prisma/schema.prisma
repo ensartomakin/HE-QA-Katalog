@@ -136,7 +136,7 @@ model CatalogItem {
   productId String
   product   Product @relation(fields: [productId], references: [id])
   sortOrder Int
-  // Baskı şablonlarındaki (editoryal, zarif, he-qa-website) renk varyantı galerisinin sırası —
+  // Baskı şablonlarındaki (editoryal) renk varyantı galerisinin sırası —
   // colorLabel değerlerinin istenen sırayla listesi. Boşsa tsoft'tan gelen ham sıra kullanılır
   // (bkz. catalog.service.ts getCatalogDetail). Katalog bazlı: aynı ürün farklı kataloglarda
   // farklı varyant sırasına sahip olabilir.
