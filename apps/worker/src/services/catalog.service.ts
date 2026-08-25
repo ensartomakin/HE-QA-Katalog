@@ -1,34 +1,5 @@
 import { calculatePrice, CATALOG_TEMPLATES } from '@he-qa/db';
 import { prisma } from '../db/prisma';
-import { generateShortDescription } from './short-description.service';
-import { logger } from '../utils/logger';
-
-// Editoryal şablonu ürün açıklaması yerine ~20 kelimelik shortDescription gösteriyor
-// (bkz. Template.tsx). Eskiden bu, Ürün Detay ekranından elle tetiklenen bir adımdı;
-// artık katalog önizleme/PDF üretiminde eksik olanlar burada otomatik dolduruluyor ve
-// DB'ye YAZILIYOR — bir sonraki önizlemede aynı ürün için tekrar üretilmiyor. Yalnızca
-// editoryal şablonu bu alanı kullandığından, diğer şablonlarda gereksiz AI çağrısı
-// yapılmaması için templateId kontrolüyle sınırlandı.
-const SHORT_DESCRIPTION_CONCURRENCY = 4;
-
-async function fillMissingShortDescriptions(items: { product: { id: string; description: string | null; shortDescription: string | null } }[]) {
-  const pending = items.filter((item) => !item.product.shortDescription && item.product.description);
-  for (let i = 0; i < pending.length; i += SHORT_DESCRIPTION_CONCURRENCY) {
-    const batch = pending.slice(i, i + SHORT_DESCRIPTION_CONCURRENCY);
-    await Promise.all(
-      batch.map(async (item) => {
-        try {
-          const shortDescription = await generateShortDescription(item.product.description as string);
-          await prisma.product.update({ where: { id: item.product.id }, data: { shortDescription } });
-          item.product.shortDescription = shortDescription;
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
-          logger.error(`[catalog/short-description] ürün ${item.product.id}: ${message}`);
-        }
-      })
-    );
-  }
-}
 
 // variantOrder boşsa ya da colorLabel içinde yoksa tüm bu tür öğeler aynı index'i alır;
 // Array.sort stabil olduğundan bu durumda tsoft'tan gelen ham sıra korunur (bkz. getCatalogDetail).
@@ -99,10 +70,6 @@ export async function getCatalogDetail(id: string) {
     },
   });
   if (!catalog) return null;
-
-  if (catalog.templateId === 'editoryal') {
-    await fillMissingShortDescriptions(catalog.items);
-  }
 
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   const discountPct = settings ? Number(settings.wholesaleDiscountPct) : 40;
