@@ -23,6 +23,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const queryClient = useQueryClient();
   const [description, setDescription] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
+  const [shortDescription, setShortDescription] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [lengthLabel, setLengthLabel] = useState('');
   const [fabricInfo, setFabricInfo] = useState('');
@@ -42,6 +43,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     if (!product) return;
     setDescription(product.description ?? '');
     setDescriptionEn(product.descriptionEn ?? '');
+    setShortDescription(product.shortDescription ?? '');
     setNameEn(product.nameEn ?? '');
     setLengthLabel(product.lengthLabel ?? '');
     setFabricInfo(product.fabricInfo ?? '');
@@ -57,6 +59,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         body: JSON.stringify({
           description: description || null,
           descriptionEn: descriptionEn || null,
+          shortDescription: shortDescription || null,
           nameEn: nameEn || null,
           lengthLabel: lengthLabel || null,
           fabricInfo: fabricInfo || null,
@@ -71,6 +74,15 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Kaydetme hatası'),
+  });
+
+  const generateShort = useMutation({
+    mutationFn: () => fetchJson<{ shortDescription: string }>(`/api/products/${params.id}/generate-short-description`, { method: 'POST' }),
+    onSuccess: (data) => {
+      setShortDescription(data.shortDescription);
+      setMessage('Kısa açıklama üretildi — kaydetmeden önce gözden geçirin.');
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'Kısa açıklama üretilemedi'),
   });
 
   function handleSubmit(e: FormEvent) {
@@ -157,6 +169,25 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
             />
           </label>
+
+          <div className="flex flex-col gap-[5px] text-[14px]">
+            <div className="flex items-center justify-between gap-[9px]">
+              <label htmlFor="short-description">Kısa Açıklama (Katalog — ~20 kelime)</label>
+              <button type="button" className="btn-ghost text-[12px]" onClick={() => generateShort.mutate()} disabled={generateShort.isPending || !description}>
+                {generateShort.isPending ? 'Üretiliyor…' : 'AI ile Oluştur'}
+              </button>
+            </div>
+            <textarea
+              id="short-description"
+              value={shortDescription}
+              onChange={(e) => setShortDescription(e.target.value)}
+              rows={2}
+              className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
+            />
+            <span className="text-[12px] text-[var(--color-bark)]">
+              {shortDescription.trim() ? shortDescription.trim().split(/\s+/).length : 0} kelime — editoryal katalog şablonunda ürün açıklaması yerine bu metin gösterilir.
+            </span>
+          </div>
 
           <label className="flex flex-col gap-[5px] text-[14px]">
             Ürün Adı (İngilizce)

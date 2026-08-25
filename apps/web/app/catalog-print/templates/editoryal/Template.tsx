@@ -398,7 +398,10 @@ function EdProductPage({
   pageNumber: number;
 }) {
   const sizeLabels = item.product.sizes.map((s) => s.label);
-  const descriptionExcerpt = extractFabricExcerpt(item.product.description);
+  // Ürün Detay ekranında "AI ile Oluştur" ile üretilip editörün onayladığı ~20 kelimelik
+  // özet varsa öncelikli kullanılır; henüz üretilmemiş ürünlerde eski kural tabanlı
+  // cümle kırpma (extractFabricExcerpt) fallback olarak kalır.
+  const descriptionExcerpt = item.product.shortDescription?.trim() || extractFabricExcerpt(item.product.description);
   const fabricComposition =
     extractFabricComposition(item.product.description) ??
     extractFabricMaterialFallback(item.product.description) ??

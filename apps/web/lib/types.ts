@@ -31,6 +31,7 @@ export interface Product {
   category: Category;
   description: string | null;
   descriptionEn: string | null;
+  shortDescription: string | null;
   nameEn: string | null;
   lengthLabel: string | null;
   fabricInfo: string | null;
