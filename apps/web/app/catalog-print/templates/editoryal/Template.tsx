@@ -23,15 +23,15 @@ function formatPrice(value: number, currency: CatalogDetail['currency']): string
   return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
 }
 
-// Gerçek ürün açıklamaları (T-Soft'tan) genelde kumaş/kesim bilgisiyle başlayıp bakım
-// talimatı, beden/ölçü tablosu gibi katalog sayfasına uygun olmayan uzun bir kuyrukla
-// devam ediyor (bkz. "Modal Bol Kesim Blazer" örneği). Bu fonksiyon metni cümle cümle
-// baştan okur, bakım/ölçü ile ilgili bir cümleye rastlayınca durur — geriye yalnızca
-// kumaş/kesimle ilgili baş kısmı kalır.
+// Gerçek ürün açıklamaları (T-Soft'tan) genelde kumaş/kesim/amaç bilgisini tek bir açılış
+// cümlesinde verip bakım talimatı, beden/ölçü tablosu gibi katalog sayfasına uygun olmayan
+// uzun bir kuyrukla devam ediyor (bkz. "Spor Görünümlü Tesettür Mayo Takımı" örneği:
+// "%80 poliamid ve %20 elastan karışımıyla üretilen bu tesettür mayo, deniz ve havuz
+// kullanımında maksimum konfor sunmak için özel olarak tasarlanmıştır."). Bu liste, o
+// açılış cümlesi yerine yanlışlıkla bir bakım/ölçü cümlesi seçilmesini önlemek için var.
 const DESCRIPTION_STOP_WORDS = [
   'yıka', 'kuruma', 'kurut', 'ütü', 'beden:', 'boy:', 'boyu:', 'kalıp bilgisi', 'ölçü', 'iade', 'değişim', 'garanti', 'stok',
 ];
-const DESCRIPTION_MAX_CHARS = 320;
 
 // T-Soft'taki ürün adları genelde model adı + rengin/desenin adıyla bitiyor (örn.
 // "RÜZGARLIK DETAYLI UZUN YÜZME TAKIMI AÇIK HAKİ" → model + "Açık Haki" rengi).
@@ -98,20 +98,16 @@ function resolveColorHex(name: string): string | null {
   return (lastWord && COLOR_NAME_HEX[lastWord]) || null;
 }
 
-function extractFabricExcerpt(description: string | null): string | null {
+// AI kullanmadan, kural tabanlı tek cümle seçimi — açıklamayı cümle cümle baştan okur ve
+// bakım/ölçü ile ilgili olmayan İLK cümleyi (ürünü tanımlayan açılış cümlesi) döndürür.
+function extractDefiningSentence(description: string | null): string | null {
   if (!description) return null;
-  const sentences = description.split(/(?<=[.!?])\s+/);
-  const picked: string[] = [];
-  let length = 0;
-  for (const sentence of sentences) {
-    const lower = sentence.toLowerCase();
-    if (DESCRIPTION_STOP_WORDS.some((w) => lower.includes(w))) break;
-    picked.push(sentence);
-    length += sentence.length;
-    if (length >= DESCRIPTION_MAX_CHARS) break;
-  }
-  const result = picked.join(' ').trim();
-  return result || null;
+  const sentences = description
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const meaningful = sentences.find((s) => !DESCRIPTION_STOP_WORDS.some((w) => s.toLowerCase().includes(w)));
+  return meaningful ?? sentences[0] ?? null;
 }
 
 // Ürün açıklamaları genelde kumaş içeriğiyle başlıyor (örn. "%100 polyester içerikli...",
@@ -398,10 +394,9 @@ function EdProductPage({
   pageNumber: number;
 }) {
   const sizeLabels = item.product.sizes.map((s) => s.label);
-  // Ürün Detay ekranında "AI ile Oluştur" ile üretilip editörün onayladığı ~20 kelimelik
-  // özet varsa öncelikli kullanılır; henüz üretilmemiş ürünlerde eski kural tabanlı
-  // cümle kırpma (extractFabricExcerpt) fallback olarak kalır.
-  const descriptionExcerpt = item.product.shortDescription?.trim() || extractFabricExcerpt(item.product.description);
+  // Ürün Detay ekranında editörün elle girdiği bir kısa açıklama varsa öncelikli kullanılır;
+  // yoksa açıklamadan kural tabanlı olarak (AI kullanılmadan) tek bir tanımlayıcı cümle çıkarılır.
+  const descriptionExcerpt = item.product.shortDescription?.trim() || extractDefiningSentence(item.product.description);
   const fabricComposition =
     extractFabricComposition(item.product.description) ??
     extractFabricMaterialFallback(item.product.description) ??
