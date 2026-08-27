@@ -67,8 +67,8 @@
 /* Ürün/hakkımızda sayfalarında logo, kaynak taslaktaki gibi sayfa altında sol köşede,
    küçük boyutta yer alır (bkz. ed-footer-brand). */
 .ed-brand-logo--footer {
-  max-height: 7.5mm;
-  max-width: 36mm;
+  max-height: 5.625mm;
+  max-width: 27mm;
   margin: 0;
 }
 
@@ -103,7 +103,7 @@
   align-items: center;
   gap: 1.5mm;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 400;
   margin-bottom: 6mm;
   letter-spacing: 0.02em;
 }
@@ -116,7 +116,7 @@
   flex-shrink: 0;
   text-align: center;
   margin-top: 3mm;
-  font-size: 13px;
+  font-size: 9.75px;
   color: var(--ed-ink);
 }
 
@@ -304,24 +304,27 @@
   padding-top: 0.93mm;
 }
 
-/* Renk balonlarıyla beden arası 3mm, beden-kumaş arası 1mm, kumaş-fiyat arası 0.5mm —
-   gap yerine margin-top kullanılıyor ki bu değerler birbirinden farklı olabilsin. İlk
-   sırada hangi bölüm olursa olsun (renk balonu olmayan ürünlerde beden ilk sıraya
-   gelir) üst boşluk almasın diye ayrıca sıfırlanıyor. */
+/* Renk balonu/Beden/Kumaş/Fiyat satırları arasındaki GÖRSEL boşluk (bir satırın büyük
+   harflerinin alt noktasından bir sonrakinin üst noktasına) eşit olacak şekilde
+   ayarlandı — üç satırın farklı font/line-height'ı (Beden/Kumaş 11.5px/1.6 satır
+   yüksekliği, Fiyat flex+baseline hizalı farklı boyutlarda metinler) yüzünden aynı
+   ham margin-top değeri farklı görsel boşluklar üretiyordu; margin'ler tarayıcıda
+   ölçülüp buna göre düzeltildi. İlk sırada hangi bölüm olursa olsun (renk balonu
+   olmayan ürünlerde beden ilk sıraya gelir) üst boşluk almasın diye ayrıca sıfırlanıyor. */
 .ed-info-right > *:first-child {
   margin-top: 0 !important;
 }
 
 .ed-info-right .ed-size-line {
-  margin-top: 3mm;
+  margin-top: 2.11mm;
 }
 
 .ed-info-right .ed-fabric-line {
-  margin-top: 1mm;
+  margin-top: 1.27mm;
 }
 
 .ed-info-right .ed-price-block {
-  margin-top: 0.5mm;
+  margin-top: 1.11mm;
 }
 
 .ed-panel-name {
