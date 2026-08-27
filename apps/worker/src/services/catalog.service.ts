@@ -16,6 +16,10 @@ export interface CreateCatalogInput {
   templateId: string;
   productIds: string[];
   createdBy: string;
+  // Katalog Oluşturucu'daki "artırılabilir" sayfa başlıkları — productId -> bu üründe
+  // gösterilecek üst künye metni. Burada olmayan ürünler kataloğun varsayılan başlığını
+  // kullanır (bkz. Template.tsx EdRunningHeader, catalog.coverTitle/name fallback'i).
+  titleOverrides?: Record<string, string>;
 }
 
 export async function createCatalog(input: CreateCatalogInput) {
@@ -34,7 +38,11 @@ export async function createCatalog(input: CreateCatalogInput) {
       createdBy: input.createdBy,
       status: 'DRAFT',
       items: {
-        create: input.productIds.map((productId, i) => ({ productId, sortOrder: i })),
+        create: input.productIds.map((productId, i) => ({
+          productId,
+          sortOrder: i,
+          headerTitleOverride: input.titleOverrides?.[productId] || null,
+        })),
       },
     },
     include: { items: true },

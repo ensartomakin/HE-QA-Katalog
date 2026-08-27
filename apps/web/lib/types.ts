@@ -70,6 +70,9 @@ export interface CatalogItem {
   // Görsel URL'sine göre anahtarlanmış odak noktası (0-1 oran) — bkz. catalog.service.ts
   // updateCatalogItemFocalPoint. Ayarlanmamış görseller bu map'te yer almaz.
   imageFocalPoints: Record<string, FocalPoint> | null;
+  // Bu ürünün sayfasında üst künyede gösterilecek başlık — boşsa kataloğun varsayılan
+  // başlığı (coverTitle/name) kullanılır (bkz. Template.tsx EdRunningHeader).
+  headerTitleOverride: string | null;
 }
 
 export interface CatalogDetail {

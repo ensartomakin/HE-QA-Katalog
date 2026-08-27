@@ -146,6 +146,10 @@ model CatalogItem {
   // (bkz. editoryal.css) kırpılan görselin hangi kısmının görünür kalacağını belirler.
   // Katalog bazlı: aynı görsel farklı kataloglarda farklı odak noktasına sahip olabilir.
   imageFocalPoints Json?
+  // Sayfa bazlı üst künye override'ı ("HE-QA / <başlık>", bkz. Template.tsx EdRunningHeader) —
+  // boşsa katalogun kendi başlığı (coverTitle/name) kullanılır. Katalog Oluşturucu'da eklenen
+  // "artırılabilir" ikinci/üçüncü... başlıklar, kullanıcının seçtiği ürünlerin bu alanına yazılır.
+  headerTitleOverride String?
 
   @@index([catalogId])
   @@unique([catalogId, productId])
