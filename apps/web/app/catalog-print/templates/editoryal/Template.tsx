@@ -382,7 +382,7 @@ function EdProductPage({
   currency,
   discountPct,
   brandLogoUrl,
-  headerTitle,
+  defaultHeaderTitle,
   pageNumber,
 }: {
   item: CatalogItem;
@@ -390,9 +390,12 @@ function EdProductPage({
   currency: CatalogDetail['currency'];
   discountPct: number;
   brandLogoUrl: string | null;
-  headerTitle: string;
+  defaultHeaderTitle: string;
   pageNumber: number;
 }) {
+  // Katalog Oluşturucu'da bu ürüne özel bir sayfa başlığı seçilmişse (bkz. "artırılabilir
+  // başlık" özelliği) o kullanılır; yoksa kataloğun varsayılan başlığı.
+  const headerTitle = item.headerTitleOverride || defaultHeaderTitle;
   const sizeLabels = item.product.sizes.map((s) => s.label);
   // Ürün Detay ekranında editörün elle girdiği bir kısa açıklama varsa öncelikli kullanılır;
   // yoksa açıklamadan kural tabanlı olarak (AI kullanılmadan) tek bir tanımlayıcı cümle çıkarılır.
@@ -463,17 +466,14 @@ function EdProductPage({
 
 function EdAboutPage({
   brandLogoUrl,
-  headerTitle,
   pageNumber,
 }: {
   brandLogoUrl: string | null;
-  headerTitle: string;
   pageNumber: number;
 }) {
   return (
     <div className="pdf-page ed-about-page">
       <div className="ed-page-frame">
-        <EdRunningHeader title={headerTitle} />
         <div className="ed-about-layout">
           <div className="ed-about-col">
             <div className="ed-about-heading">HAKKIMIZDA</div>
@@ -490,7 +490,7 @@ function EdAboutPage({
             <div className="ed-about-heading">İLETİŞİM</div>
             <div className="ed-contact-row">
               <div className="ed-label">Telefon</div>
-              <div className="ed-contact-value">0264 502 29 33</div>
+              <div className="ed-contact-value">+90 850 532 12 63</div>
             </div>
             <div className="ed-contact-row">
               <div className="ed-label">Adres</div>
@@ -526,7 +526,7 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
     }))
   );
   const totalPages = productPages.length + 2; // kapak + ürün sayfaları + hakkımızda/iletişim
-  const headerTitle = catalog.coverTitle || catalog.name;
+  const defaultHeaderTitle = catalog.coverTitle || catalog.name;
 
   return (
     <div className="catalog-print editoryal">
@@ -545,12 +545,12 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
           currency={catalog.currency}
           discountPct={catalog.discountPct}
           brandLogoUrl={settings.brandLogoUrl}
-          headerTitle={headerTitle}
+          defaultHeaderTitle={defaultHeaderTitle}
           pageNumber={index + 2}
         />
       ))}
 
-      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} headerTitle={headerTitle} pageNumber={totalPages} />
+      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} pageNumber={totalPages} />
     </div>
   );
 }
