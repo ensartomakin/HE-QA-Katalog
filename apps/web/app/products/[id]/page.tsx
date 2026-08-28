@@ -23,12 +23,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const queryClient = useQueryClient();
   const [description, setDescription] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
+  const [descriptionAr, setDescriptionAr] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [shortDescriptionEn, setShortDescriptionEn] = useState('');
+  const [shortDescriptionAr, setShortDescriptionAr] = useState('');
   const [nameEn, setNameEn] = useState('');
+  const [nameAr, setNameAr] = useState('');
   const [lengthLabel, setLengthLabel] = useState('');
   const [fabricInfo, setFabricInfo] = useState('');
   const [fabricInfoEn, setFabricInfoEn] = useState('');
+  const [fabricInfoAr, setFabricInfoAr] = useState('');
   const [manualSortWeight, setManualSortWeight] = useState('');
   const [salesScore, setSalesScore] = useState('');
   const [sizes, setSizes] = useState<string[]>([]);
@@ -45,12 +49,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     if (!product) return;
     setDescription(product.description ?? '');
     setDescriptionEn(product.descriptionEn ?? '');
+    setDescriptionAr(product.descriptionAr ?? '');
     setShortDescription(product.shortDescription ?? '');
     setShortDescriptionEn(product.shortDescriptionEn ?? '');
+    setShortDescriptionAr(product.shortDescriptionAr ?? '');
     setNameEn(product.nameEn ?? '');
+    setNameAr(product.nameAr ?? '');
     setLengthLabel(product.lengthLabel ?? '');
     setFabricInfo(product.fabricInfo ?? '');
     setFabricInfoEn(product.fabricInfoEn ?? '');
+    setFabricInfoAr(product.fabricInfoAr ?? '');
     setManualSortWeight(product.manualSortWeight?.toString() ?? '');
     setSalesScore(product.salesScore ?? '');
     setSizes(product.sizes.map((s) => s.label));
@@ -63,12 +71,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         body: JSON.stringify({
           description: description || null,
           descriptionEn: descriptionEn || null,
+          descriptionAr: descriptionAr || null,
           shortDescription: shortDescription || null,
           shortDescriptionEn: shortDescriptionEn || null,
+          shortDescriptionAr: shortDescriptionAr || null,
           nameEn: nameEn || null,
+          nameAr: nameAr || null,
           lengthLabel: lengthLabel || null,
           fabricInfo: fabricInfo || null,
           fabricInfoEn: fabricInfoEn || null,
+          fabricInfoAr: fabricInfoAr || null,
           manualSortWeight: manualSortWeight ? Number(manualSortWeight) : null,
           salesScore: salesScore ? Number(salesScore) : null,
           sizes,
@@ -168,6 +180,17 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </label>
 
           <label className="flex flex-col gap-[5px] text-[14px]">
+            Açıklama (Arapça)
+            <textarea
+              value={descriptionAr}
+              onChange={(e) => setDescriptionAr(e.target.value)}
+              rows={4}
+              dir="rtl"
+              className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
             Kısa Açıklama (Katalog — opsiyonel override)
             <textarea
               value={shortDescription}
@@ -190,10 +213,32 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </label>
 
           <label className="flex flex-col gap-[5px] text-[14px]">
+            Kısa Açıklama (Arapça — opsiyonel override)
+            <textarea
+              value={shortDescriptionAr}
+              onChange={(e) => setShortDescriptionAr(e.target.value)}
+              rows={2}
+              dir="rtl"
+              placeholder="Boş bırakılırsa Arapça katalog üretiminde Türkçe kısa açıklama Gemini ile otomatik çevrilir."
+              className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
             Ürün Adı (İngilizce)
             <input
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
+              className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
+            Ürün Adı (Arapça)
+            <input
+              value={nameAr}
+              onChange={(e) => setNameAr(e.target.value)}
+              dir="rtl"
               className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
             />
           </label>
@@ -212,6 +257,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <input
               value={fabricInfoEn}
               onChange={(e) => setFabricInfoEn(e.target.value)}
+              className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
+            Kumaş Bilgisi (Arapça)
+            <input
+              value={fabricInfoAr}
+              onChange={(e) => setFabricInfoAr(e.target.value)}
+              dir="rtl"
               className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
             />
           </label>

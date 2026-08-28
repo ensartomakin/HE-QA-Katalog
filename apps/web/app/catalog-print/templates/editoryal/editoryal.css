@@ -23,6 +23,29 @@
   font-weight: 900;
 }
 
+/* Arapça katalog için — Inter'de Arapça glif yok, tarayıcı bu fontu sadece Arapça
+   karakterler için devreye sokar (font-family listesinde fallback, bkz. --ed-sans).
+   Tek bir değişken-ağırlıklı (variable) woff2 dosyası 400/700/900 için ayrı font-weight
+   bildirimleriyle tekrar kullanılıyor — Google Fonts'un kendi CSS'i de aynı deseni izliyor. */
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  src: url('/fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2') format('woff2');
+  font-weight: 400;
+  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  src: url('/fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2') format('woff2');
+  font-weight: 700;
+  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFC;
+}
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  src: url('/fonts/noto-sans-arabic/NotoSansArabic-Variable.woff2') format('woff2');
+  font-weight: 900;
+  unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFC;
+}
+
 .editoryal {
   /* A4 yatay — bkz. print-base.css .catalog-print varsayılanı (210mm/297mm, dikey). */
   --page-width: 297mm;
@@ -36,7 +59,7 @@
   --ed-muted: #8a8a86;
   --ed-border: rgba(26, 26, 26, 0.75);
 
-  --ed-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --ed-sans: 'Inter', 'Noto Sans Arabic', ui-sans-serif, system-ui, sans-serif;
 
   font-family: var(--ed-sans);
   color: var(--ed-ink);
@@ -295,7 +318,9 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  text-align: left;
+  /* `start` (fiziksel left/right yerine) — Arapça katalogda (dir="rtl") kutunun kendisi
+     zaten flex mirror ile sağa geçiyor, içindeki metin de doğal okuma yönünde hizalanır. */
+  text-align: start;
   /* Kutu modelinde renk balonları ürün adıyla aynı satırda (row) başlıyor, ama
      ürün adının gerçek harf gövdesi (Türkçe noktalı harflerin üstü değil, "A" gibi
      düz bir harfin üst kenarı) satır kutusunun ~0.93mm altından başlıyor (bkz.
@@ -382,7 +407,9 @@
 }
 
 .ed-size-line span + span {
-  margin-left: 4mm;
+  /* Fiziksel margin-left yerine mantıksal özellik — Arapçada (dir="rtl") boşluk otomatik
+     olarak doğru tarafa (sağdan sola okumada önceki elemanın başlangıcına) geçer. */
+  margin-inline-start: 4mm;
 }
 
 .ed-size-line strong,
@@ -417,9 +444,12 @@
   height: 7.5mm;
 }
 
+/* inset-inline-end/start (fiziksel right/left yerine) — Arapça katalogda (dir="rtl")
+   sayfa numarası ve marka logosu otomatik olarak yer değiştirir, sayfanın genel akış
+   yönüyle (sağdan sola) tutarlı kalır. */
 .ed-page-footer .ed-page-number {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   top: 50%;
   transform: translateY(-50%);
   margin-top: 0;
@@ -427,7 +457,7 @@
 
 .ed-footer-brand {
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 50%;
   transform: translateY(-50%);
   display: flex;

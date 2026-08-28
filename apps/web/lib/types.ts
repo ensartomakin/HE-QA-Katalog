@@ -31,12 +31,16 @@ export interface Product {
   category: Category;
   description: string | null;
   descriptionEn: string | null;
+  descriptionAr: string | null;
   shortDescription: string | null;
   shortDescriptionEn: string | null;
+  shortDescriptionAr: string | null;
   nameEn: string | null;
+  nameAr: string | null;
   lengthLabel: string | null;
   fabricInfo: string | null;
   fabricInfoEn: string | null;
+  fabricInfoAr: string | null;
   colorLabel: string | null;
   sourcePriceTry: string; // Prisma Decimal → JSON'da string olarak gelir
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'UNKNOWN';
