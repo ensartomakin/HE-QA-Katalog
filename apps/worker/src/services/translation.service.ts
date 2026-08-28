@@ -30,6 +30,16 @@ function getClient(): GoogleGenerativeAI {
   return client;
 }
 
+// Gemini'nin ücretsiz katmanı dakikada çok düşük bir istek sınırına sahip (bkz. hata mesajı:
+// "generate_content_free_tier_requests", quotaValue genelde 5/dk) — çok ürünlü bir katalogda
+// (her ürün için ad/açıklama/kısa açıklama/kumaş = 4 istek) bu sınıra anında çarpılıyor ve
+// çoğu alan 429 ile başarısız oluyor. BİLİNÇLİ OLARAK burada retry/bekleme YOK: Gemini'nin
+// önerdiği bekleme süresi (~20-30sn) PDF üretimindeki Playwright zaman aşımını (60sn, bkz.
+// pdf.service.ts) kolayca aşar — denenmişti (bkz. PR tartışması), tek istek 150sn'yi
+// buluyordu. Hızlı başarısız olup çağıran tarafın (catalog.service.ts) Türkçe metne
+// düşmesine izin vermek daha güvenli; eksik alanlar bir SONRAKİ önizleme/PDF isteğinde
+// (kota penceresi sıfırlandıkça) kendiliğinden tamamlanır. Kalıcı çözüm: .env.example'da
+// belirtildiği gibi bu API anahtarı için faturalandırmayı aktif etmek.
 export async function translateText(text: string, targetLanguage: TranslationTargetLanguage): Promise<string> {
   const trimmed = text.trim();
   if (!trimmed) throw new Error('Çevrilecek metin boş.');

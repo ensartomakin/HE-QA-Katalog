@@ -87,7 +87,12 @@ type TranslatableProduct = {
 // İngilizce girilmemişse Gemini ile Türkçeden çevirip DB'ye yazar. Sonuç kalıcı olduğundan
 // bir sonraki istekte aynı ürün için tekrar çekilmez/çevrilmez. Her adım ayrı try/catch
 // ile denenir; biri başarısız olursa diğerleri etkilenmez ve şablon o alan için Türkçe
-// metne düşer (bkz. Template.tsx) — sayfa hiçbir zaman boş kalmaz.
+// metne düşer (bkz. Template.tsx) — sayfa hiçbir zaman boş kalmaz. Not: Gemini'nin ücretsiz
+// katmanı çok düşük bir dakikalık istek sınırına sahip olduğundan (bkz. translation.service.ts
+// üstteki not) büyük kataloglarda bu sınıra çarpılıp çoğu alan Türkçeye düşebilir —
+// eşzamanlılığı burada düşürmek 429'ları önlemiyor (kota zaten anında doluyor), sadece
+// isteği yavaşlatıp PDF üretimindeki 60sn zaman aşımı riskini artırıyor; asıl çözüm
+// faturalandırmayı aktif etmek.
 const TRANSLATE_CONCURRENCY = 4;
 
 async function fillMissingEnglishContent(items: { product: TranslatableProduct }[]) {
