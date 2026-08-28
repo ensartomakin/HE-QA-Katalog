@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CATALOG_TEMPLATES, DEFAULT_CATALOG_TEMPLATE_ID } from '@he-qa/db';
 import { TopNav } from '@/components/TopNav';
 import { useCatalogSelection } from '@/lib/catalog-selection.store';
-import type { CatalogCurrency, Product } from '@/lib/types';
+import type { CatalogCurrency, CatalogLanguage, Product } from '@/lib/types';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -28,6 +28,7 @@ export default function NewCatalogPage() {
   const [saving, setSaving] = useState(false);
   const [currency, setCurrency] = useState<CatalogCurrency>('TRY');
   const [templateId, setTemplateId] = useState<string>(DEFAULT_CATALOG_TEMPLATE_ID);
+  const [language, setLanguage] = useState<CatalogLanguage>('TR');
   // Katalog Adı dışında, sayfa bazlı gösterilebilecek ek başlıklar (bkz. "artırılabilir
   // katalog adı" özelliği) — her ürün, Seçili Ürünler listesindeki açılır menüden bu
   // başlıklardan birine (ya da varsayılan olarak Katalog Adı'na) atanabilir.
@@ -111,6 +112,7 @@ export default function NewCatalogPage() {
           name: String(form.get('name') ?? ''),
           currency: String(form.get('currency') ?? 'TRY') as CatalogCurrency,
           templateId,
+          language,
           productIds: orderedIds,
           createdBy: meData?.user.email ?? 'bilinmiyor',
           ...(Object.keys(titleOverrides).length > 0 ? { titleOverrides } : {}),
@@ -186,6 +188,25 @@ export default function NewCatalogPage() {
                 {currency} için kur tanımlı değil. Önce Ayarlar sayfasından kur girin.
               </p>
             )}
+
+            <label className="flex flex-col gap-[5px] text-[14px]">
+              Dil
+              <select
+                name="language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as CatalogLanguage)}
+                className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] outline-none"
+              >
+                <option value="TR">Türkçe</option>
+                <option value="EN">İngilizce</option>
+              </select>
+              {language === 'EN' && (
+                <span className="text-[12px] text-[var(--color-bark)]">
+                  Ürünlerin İngilizce alanları boşsa Gemini ile otomatik çevrilip kaydedilir; editör sonradan Ürün
+                  Detay ekranından düzeltebilir.
+                </span>
+              )}
+            </label>
 
             <div className="flex flex-col gap-[9px]">
               <div className="flex items-center justify-between">
