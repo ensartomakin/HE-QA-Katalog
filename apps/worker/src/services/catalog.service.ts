@@ -261,6 +261,54 @@ async function fillMissingArabicContent(items: { product: TranslatableProduct }[
   }
 }
 
+const TRANSLATABLE_PRODUCT_SELECT = {
+  id: true,
+  code: true,
+  name: true,
+  description: true,
+  descriptionEn: true,
+  descriptionAr: true,
+  shortDescription: true,
+  shortDescriptionEn: true,
+  shortDescriptionAr: true,
+  nameEn: true,
+  nameAr: true,
+  fabricInfo: true,
+  fabricInfoEn: true,
+  fabricInfoAr: true,
+} as const;
+
+// Bir kataloğa dahil edildiğinde İngilizce/Arapça çevrilmesini beklemek yerine — Ürün
+// Yönetimi ekranından tetiklenir, henüz o dile çevrilmemiş (nameEn/nameAr'ı boş) ürünlerden
+// küçük bir grubu (BULK_BATCH_SIZE) çevirip DB'ye yazar ve kalan sayıyı döndürür. Web
+// tarafı bu uç noktayı `remaining` sıfıra inene kadar art arda çağırır (bkz.
+// products/translate-batch route) — bu sayede Gemini'nin dakikalık kotasını aşmadan TÜM
+// katalog parça parça, sayfa açıkken izlenebilir şekilde çevrilebilir. Zaten çevrilmiş
+// ürünler where koşuluyla hiç seçilmiyor, bu yüzden tekrar çağırmak güvenli/idempotent.
+const BULK_BATCH_SIZE = 12;
+
+export async function translateMissingProductsBatch(
+  language: 'EN' | 'AR'
+): Promise<{ processed: number; remaining: number }> {
+  const whereMissing = language === 'EN' ? { nameEn: null } : { nameAr: null };
+
+  const products = await prisma.product.findMany({
+    where: { ...whereMissing, archivedAt: null },
+    take: BULK_BATCH_SIZE,
+    orderBy: { createdAt: 'asc' },
+    select: TRANSLATABLE_PRODUCT_SELECT,
+  });
+
+  if (products.length > 0) {
+    const items = products.map((product) => ({ product }));
+    if (language === 'EN') await fillMissingEnglishContent(items);
+    else await fillMissingArabicContent(items);
+  }
+
+  const remaining = await prisma.product.count({ where: { ...whereMissing, archivedAt: null } });
+  return { processed: products.length, remaining };
+}
+
 export async function listCatalogs() {
   return prisma.catalog.findMany({
     orderBy: { createdAt: 'desc' },

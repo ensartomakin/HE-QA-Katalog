@@ -2,8 +2,35 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { asyncHandler } from '../utils/async-handler';
+import { translateMissingProductsBatch } from '../services/catalog.service';
+import { logger } from '../utils/logger';
 
 export const productsRouter = Router();
+
+const translateBatchSchema = z.object({ language: z.enum(['EN', 'AR']) });
+
+// Ürün Yönetimi ekranındaki "Toplu Çeviri" bölümünden tetiklenir — henüz bu dile çevrilmemiş
+// küçük bir ürün grubunu çevirip DB'ye yazar, kalan sayıyı döndürür. Web tarafı bu uç noktayı
+// `remaining` sıfıra inene kadar art arda çağırarak TÜM kataloğu parça parça çevirir (bkz.
+// catalog.service.ts translateMissingProductsBatch).
+productsRouter.post(
+  '/translate-batch',
+  asyncHandler(async (req: Request, res: Response) => {
+    const parsed = translateBatchSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.flatten() });
+      return;
+    }
+    try {
+      const result = await translateMissingProductsBatch(parsed.data.language);
+      res.json(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error(`[products/translate-batch] ${message}`);
+      res.status(502).json({ error: message });
+    }
+  })
+);
 
 const sortOrderSchema = z.object({ ids: z.array(z.string()).min(1) });
 

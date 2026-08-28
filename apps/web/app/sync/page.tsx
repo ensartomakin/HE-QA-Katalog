@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { TopNav } from '@/components/TopNav';
 
@@ -9,6 +9,89 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body?.error ?? `İstek başarısız: ${url}`);
   return body;
+}
+
+interface BulkTranslateStatus {
+  running: boolean;
+  remaining: number | null;
+  error: string | null;
+  done: boolean;
+}
+
+const BULK_TRANSLATE_POLL_DELAY_MS = 5000;
+
+// Ürün başına Gemini kotasına (bkz. worker translation.service.ts) tek istekte çarpmamak için
+// her turda küçük bir grup (worker'daki BULK_BATCH_SIZE) çevrilip `remaining` sıfıra inene
+// kadar bekleyip tekrar çağrılıyor — sayfa açık kaldığı sürece otomatik ilerler, kapatılırsa
+// kaldığı yerden (DB'de zaten çevrilmiş olanlar tekrar denenmediği için) güvenle devam eder.
+function useBulkTranslate(language: 'EN' | 'AR') {
+  const [status, setStatus] = useState<BulkTranslateStatus>({ running: false, remaining: null, error: null, done: false });
+  const stopRef = useRef(false);
+
+  async function start() {
+    stopRef.current = false;
+    setStatus({ running: true, remaining: null, error: null, done: false });
+    while (!stopRef.current) {
+      try {
+        const res = await fetchJson<{ processed: number; remaining: number }>('/api/products/translate-batch', {
+          method: 'POST',
+          body: JSON.stringify({ language }),
+        });
+        if (stopRef.current) return;
+        if (res.remaining === 0) {
+          setStatus({ running: false, remaining: 0, error: null, done: true });
+          return;
+        }
+        setStatus((prev) => ({ ...prev, remaining: res.remaining }));
+      } catch (err) {
+        setStatus((prev) => ({ ...prev, running: false, error: err instanceof Error ? err.message : 'Bilinmeyen hata' }));
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, BULK_TRANSLATE_POLL_DELAY_MS));
+    }
+    setStatus((prev) => ({ ...prev, running: false }));
+  }
+
+  function stop() {
+    stopRef.current = true;
+    setStatus((prev) => ({ ...prev, running: false }));
+  }
+
+  return { status, start, stop };
+}
+
+function BulkTranslateCard({
+  title,
+  status,
+  onStart,
+  onStop,
+}: {
+  title: string;
+  status: BulkTranslateStatus;
+  onStart: () => void;
+  onStop: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-[9px] border border-[var(--color-pebble)] p-[17px] flex-1">
+      <div className="flex items-center justify-between">
+        <span className="text-[14px]">{title}</span>
+        <button type="button" className="btn-ghost text-[12px]" onClick={status.running ? onStop : onStart}>
+          {status.running ? 'Durdur' : 'Başlat'}
+        </button>
+      </div>
+      <p className="text-[12px] text-[var(--color-bark)]">
+        {status.error
+          ? status.error
+          : status.done
+            ? 'Tamamlandı — çevrilmemiş ürün kalmadı.'
+            : status.remaining !== null
+              ? `${status.running ? 'Çevriliyor…' : 'Duraklatıldı.'} Kalan: ${status.remaining} ürün`
+              : status.running
+                ? 'Başlatılıyor…'
+                : 'Henüz başlatılmadı.'}
+      </p>
+    </div>
+  );
 }
 
 interface SyncRun {
@@ -37,6 +120,8 @@ export default function SyncPage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [salesMessage, setSalesMessage] = useState<string | null>(null);
+  const enTranslate = useBulkTranslate('EN');
+  const arTranslate = useBulkTranslate('AR');
 
   const { data } = useQuery({
     queryKey: ['sync-history'],
@@ -111,6 +196,19 @@ export default function SyncPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        <div className="flex flex-col gap-[17px]">
+          <h2 className="text-[21px]">Toplu Çeviri</h2>
+          <p className="text-[14px] text-[var(--color-bark)]">
+            Henüz İngilizce/Arapça alanları boş olan ürünleri arka planda parça parça çevirip veritabanına kaydeder
+            — bir sonraki katalog üretiminde tekrar çevrilmeleri gerekmez. Başlatıldıktan sonra sayfa açık kaldığı
+            sürece otomatik ilerler; kapatıp daha sonra devam ettirebilirsiniz.
+          </p>
+          <div className="flex gap-[17px]">
+            <BulkTranslateCard title="İngilizce" status={enTranslate.status} onStart={enTranslate.start} onStop={enTranslate.stop} />
+            <BulkTranslateCard title="Arapça" status={arTranslate.status} onStart={arTranslate.start} onStop={arTranslate.stop} />
+          </div>
         </div>
 
         <div className="flex flex-col gap-[17px]">
