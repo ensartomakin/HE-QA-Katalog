@@ -75,3 +75,61 @@ export function extractFabricMaterialFallback(description: string | null): strin
   }
   return best?.name ?? null;
 }
+
+// --- İngilizce sürümler ---
+// T-Soft'un kendi İngilizce ürün açıklaması (bkz. worker tsoft-client.ts getProductLanguage,
+// Language=en) gerçek, insan tarafından çevrilmiş metin olduğundan yukarıdaki TR odaklı
+// kalıplarla eşleşmiyor — kelime sırası ters (örn. "%88 modal" değil "88% modal") ve durak
+// kelimeleri İngilizce. Bu yüzden ayrı bir küme gerekiyor.
+const DESCRIPTION_STOP_WORDS_EN = [
+  'wash', 'dry clean', 'dry-clean', 'iron', 'size:', 'size chart', 'length:', 'fit information',
+  'measurements', "model's measurements", 'return', 'exchange', 'warranty', 'stock', 'care instructions',
+];
+
+export function extractDefiningSentenceEn(description: string | null): string | null {
+  if (!description) return null;
+  const sentences = description
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const meaningful = sentences.find((s) => !DESCRIPTION_STOP_WORDS_EN.some((w) => s.toLowerCase().includes(w)));
+  return meaningful ?? sentences[0] ?? null;
+}
+
+const FABRIC_COMPOSITION_ITEM_EN = '\\d+\\s*%\\s*[A-Za-z]+';
+const FABRIC_COMPOSITION_RE_EN = new RegExp(`${FABRIC_COMPOSITION_ITEM_EN}(?:\\s*(?:,|and)\\s*${FABRIC_COMPOSITION_ITEM_EN})*`, 'i');
+
+export function extractFabricCompositionEn(description: string | null): string | null {
+  if (!description) return null;
+  const match = description.match(FABRIC_COMPOSITION_RE_EN);
+  if (!match) return null;
+  return match[0].replace(/\s+/g, ' ').trim();
+}
+
+const FABRIC_MATERIALS_EN: { name: string; re: RegExp }[] = [
+  { name: 'Cotton', re: /cotton\w*/i },
+  { name: 'Parachute Fabric', re: /parachute\w*/i },
+  { name: 'Polyester', re: /polyester\w*|\bpes\b/i },
+  { name: 'Elastane', re: /elastane\w*/i },
+  { name: 'Polyamide', re: /polyamide\w*/i },
+  { name: 'Viscose', re: /viscose\w*/i },
+  { name: 'Linen', re: /linen\w*/i },
+  { name: 'Wool', re: /wool\w*/i },
+  { name: 'Silk', re: /silk\w*/i },
+  { name: 'Modal', re: /modal\w*/i },
+  { name: 'Nylon', re: /nylon\w*/i },
+  { name: 'Lycra', re: /lycra\w*|spandex\w*/i },
+  { name: 'Rayon', re: /rayon\w*/i },
+];
+
+export function extractFabricMaterialFallbackEn(description: string | null): string | null {
+  if (!description) return null;
+  let best: { index: number; name: string } | null = null;
+  for (const { name, re } of FABRIC_MATERIALS_EN) {
+    const match = description.match(re);
+    if (match && match.index !== undefined && (!best || match.index < best.index)) {
+      best = { index: match.index, name };
+    }
+  }
+  return best?.name ?? null;
+}

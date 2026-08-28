@@ -1,6 +1,16 @@
-import { calculatePrice, CATALOG_TEMPLATES, extractDefiningSentence, extractFabricComposition, extractFabricMaterialFallback } from '@he-qa/db';
+import {
+  calculatePrice,
+  CATALOG_TEMPLATES,
+  extractDefiningSentence,
+  extractFabricComposition,
+  extractFabricMaterialFallback,
+  extractDefiningSentenceEn,
+  extractFabricCompositionEn,
+  extractFabricMaterialFallbackEn,
+} from '@he-qa/db';
 import { prisma } from '../db/prisma';
 import { translateToEnglish } from './translation.service';
+import { getTsoftClient } from './tsoft-client';
 import { logger } from '../utils/logger';
 
 // variantOrder boşsa ya da colorLabel içinde yoksa tüm bu tür öğeler aynı index'i alır;
@@ -56,6 +66,7 @@ export async function createCatalog(input: CreateCatalogInput) {
 
 type TranslatableProduct = {
   id: string;
+  code: string;
   name: string;
   description: string | null;
   descriptionEn: string | null;
@@ -67,10 +78,12 @@ type TranslatableProduct = {
 };
 
 // İngilizce katalog önizleme/PDF üretiminde, editörün elle çevirmediği ürün metinlerini
-// (ad/açıklama/kısa açıklama/kumaş) Gemini ile Türkçeden çevirip DB'ye yazar — bir sonraki
-// istekte aynı ürün için tekrar çevrilmez. Her alan ayrı try/catch ile denenir; biri
-// başarısız olursa diğerleri etkilenmez ve şablon o alan için Türkçe metne düşer (bkz.
-// Template.tsx) — sayfa hiçbir zaman boş kalmaz.
+// önce T-Soft'un kendi "Dil" sekmesinden (bkz. tsoft-client.ts getProductLanguage —
+// insan tarafından çevrilmiş, otoriter kaynak) çekmeye çalışır; T-Soft'ta o ürün için
+// İngilizce girilmemişse Gemini ile Türkçeden çevirip DB'ye yazar. Sonuç kalıcı olduğundan
+// bir sonraki istekte aynı ürün için tekrar çekilmez/çevrilmez. Her adım ayrı try/catch
+// ile denenir; biri başarısız olursa diğerleri etkilenmez ve şablon o alan için Türkçe
+// metne düşer (bkz. Template.tsx) — sayfa hiçbir zaman boş kalmaz.
 const TRANSLATE_CONCURRENCY = 4;
 
 async function fillMissingEnglishContent(items: { product: TranslatableProduct }[]) {
@@ -81,6 +94,12 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
       (!item.product.shortDescriptionEn && (item.product.shortDescription || item.product.description)) ||
       (!item.product.fabricInfoEn && (item.product.fabricInfo || item.product.description))
   );
+  if (pending.length === 0) return;
+
+  const tsoft = await getTsoftClient().catch((err) => {
+    logger.error(`[catalog/translate] T-Soft istemcisi alınamadı, doğrudan Gemini'ye düşülüyor: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  });
 
   for (let i = 0; i < pending.length; i += TRANSLATE_CONCURRENCY) {
     const batch = pending.slice(i, i + TRANSLATE_CONCURRENCY);
@@ -88,41 +107,83 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
       batch.map(async ({ product }) => {
         const data: Record<string, string> = {};
 
-        if (!product.nameEn && product.name) {
+        // 1) T-Soft'un kendi İngilizce "Dil" sekmesi — editör tarafından girilmiş gerçek
+        // çeviri, Gemini'den önce denenir. Boş/hata durumunda sessizce Gemini'ye düşülür.
+        let tsoftName = '';
+        let tsoftDescription = '';
+        let tsoftShort = '';
+        if (tsoft && (!product.nameEn || !product.descriptionEn || !product.shortDescriptionEn)) {
           try {
-            data.nameEn = await translateToEnglish(product.name);
+            const lang = await tsoft.getProductLanguage(product.code, 'en');
+            if (lang) {
+              tsoftName = lang.productName;
+              tsoftDescription = lang.description;
+              tsoftShort = lang.shortDescription;
+            }
           } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} nameEn: ${err instanceof Error ? err.message : String(err)}`);
+            logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
 
-        if (!product.descriptionEn && product.description) {
-          try {
-            data.descriptionEn = await translateToEnglish(product.description);
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} descriptionEn: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
-
-        if (!product.shortDescriptionEn) {
-          const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
-          if (trExcerpt) {
+        if (!product.nameEn) {
+          if (tsoftName) {
+            data.nameEn = tsoftName;
+          } else if (product.name) {
             try {
-              data.shortDescriptionEn = await translateToEnglish(trExcerpt);
+              data.nameEn = await translateToEnglish(product.name);
             } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} shortDescriptionEn: ${err instanceof Error ? err.message : String(err)}`);
+              logger.error(`[catalog/translate] ürün ${product.id} nameEn: ${err instanceof Error ? err.message : String(err)}`);
             }
           }
         }
 
-        if (!product.fabricInfoEn) {
-          const trFabric =
-            extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
-          if (trFabric) {
+        if (!product.descriptionEn) {
+          if (tsoftDescription) {
+            data.descriptionEn = tsoftDescription;
+          } else if (product.description) {
             try {
-              data.fabricInfoEn = await translateToEnglish(trFabric);
+              data.descriptionEn = await translateToEnglish(product.description);
             } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} fabricInfoEn: ${err instanceof Error ? err.message : String(err)}`);
+              logger.error(`[catalog/translate] ürün ${product.id} descriptionEn: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+        }
+
+        // Sonraki iki alan (kısa açıklama, kumaş), az önce elde edilen İngilizce açıklama
+        // üzerinden kural tabanlı çıkarım yapabilmek için descriptionEn'in EN halini bilmeli
+        // — DB'de zaten varsa oradan, bu istekte yeni geldiyse data.descriptionEn'den okunur.
+        const resolvedDescriptionEn = data.descriptionEn ?? product.descriptionEn;
+
+        if (!product.shortDescriptionEn) {
+          let shortEn = tsoftShort || (resolvedDescriptionEn ? extractDefiningSentenceEn(resolvedDescriptionEn) : null);
+          if (!shortEn) {
+            const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
+            if (trExcerpt) {
+              try {
+                shortEn = await translateToEnglish(trExcerpt);
+              } catch (err) {
+                logger.error(`[catalog/translate] ürün ${product.id} shortDescriptionEn: ${err instanceof Error ? err.message : String(err)}`);
+              }
+            }
+          }
+          if (shortEn) data.shortDescriptionEn = shortEn;
+        }
+
+        if (!product.fabricInfoEn) {
+          const enFabric = resolvedDescriptionEn
+            ? extractFabricCompositionEn(resolvedDescriptionEn) ?? extractFabricMaterialFallbackEn(resolvedDescriptionEn)
+            : null;
+          if (enFabric) {
+            data.fabricInfoEn = enFabric;
+          } else {
+            const trFabric =
+              extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
+            if (trFabric) {
+              try {
+                data.fabricInfoEn = await translateToEnglish(trFabric);
+              } catch (err) {
+                logger.error(`[catalog/translate] ürün ${product.id} fabricInfoEn: ${err instanceof Error ? err.message : String(err)}`);
+              }
             }
           }
         }

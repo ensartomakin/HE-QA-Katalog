@@ -270,6 +270,38 @@ export class TSoftClient implements TSoftClientApi {
     return results;
   }
 
+  /** T-Soft ürün düzenleme ekranındaki "Dil" sekmesinin çoklu-dil içeriğini döndürür
+   *  (bkz. T-Soft destek yanıtı: `product/getProductLanguage/{ProductCode}`, gövdede
+   *  `Language=en` parametresiyle). Bu, `product/get`'in normal yanıtından TAMAMEN AYRI bir
+   *  uç nokta — dil parametresi login'de veya `product/get`'te değil, sadece burada işe
+   *  yarıyor (birçok varyant denendi, bkz. PR #71 tartışması). Editör o ürün için İngilizce
+   *  sekmesini hiç doldurmadıysa alanlar boş string döner (null değil) — bu yüzden trim
+   *  edip boşsa null'a çeviriyoruz ki çağıran taraf (catalog.service.ts) "T-Soft'ta yok,
+   *  Gemini'ye düş" kararını güvenle verebilsin. */
+  async getProductLanguage(productCode: string, language: string): Promise<{ productName: string; description: string; shortDescription: string } | null> {
+    const token = await getToken(this.cacheKey, this.http, this.creds);
+    const body = new URLSearchParams({ token, Language: language });
+    const res = await withRetry(() =>
+      this.http.post(`/rest1/product/getProductLanguage/${encodeURIComponent(productCode)}`, body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      })
+    );
+    if (res.data?.success === false) return null;
+    const d = res.data?.data as Record<string, unknown> | undefined;
+    if (!d) return null;
+
+    const productName = String(d.ProductName ?? '').trim();
+    const detailsHtml = String(d.Details ?? '').trim();
+    const shortDescription = String(d.ShortDescription ?? '').trim();
+    if (!productName && !detailsHtml && !shortDescription) return null;
+
+    return {
+      productName,
+      description: detailsHtml ? this.stripHtml(detailsHtml) : '',
+      shortDescription: shortDescription ? this.stripHtml(shortDescription) : '',
+    };
+  }
+
   private _loggedProductKeys = false;
 
   /** Details HTML'inden düz metin çıkarır (etiketleri söker, boşlukları sadeleştirir). */

@@ -1,5 +1,12 @@
 import './editoryal.css';
-import { extractDefiningSentence, extractFabricComposition, extractFabricMaterialFallback } from '@he-qa/db';
+import {
+  extractDefiningSentence,
+  extractFabricComposition,
+  extractFabricMaterialFallback,
+  extractDefiningSentenceEn,
+  extractFabricCompositionEn,
+  extractFabricMaterialFallbackEn,
+} from '@he-qa/db';
 import type { CatalogDetail, CatalogItem, CatalogLanguage } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
 import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
@@ -354,13 +361,13 @@ function EdProductPage({
   const displayName = stripColorFromName(displayNameSource, item.product.colorLabel);
   const descriptionExcerpt =
     language === 'EN'
-      ? item.product.shortDescriptionEn?.trim() || extractDefiningSentence(item.product.descriptionEn) || trExcerpt
+      ? item.product.shortDescriptionEn?.trim() || extractDefiningSentenceEn(item.product.descriptionEn) || trExcerpt
       : trExcerpt;
   const fabricComposition =
     language === 'EN'
       ? item.product.fabricInfoEn ??
-        extractFabricComposition(item.product.descriptionEn) ??
-        extractFabricMaterialFallback(item.product.descriptionEn) ??
+        extractFabricCompositionEn(item.product.descriptionEn) ??
+        extractFabricMaterialFallbackEn(item.product.descriptionEn) ??
         trFabric
       : trFabric;
 
