@@ -24,9 +24,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [description, setDescription] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
   const [shortDescription, setShortDescription] = useState('');
+  const [shortDescriptionEn, setShortDescriptionEn] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [lengthLabel, setLengthLabel] = useState('');
   const [fabricInfo, setFabricInfo] = useState('');
+  const [fabricInfoEn, setFabricInfoEn] = useState('');
   const [manualSortWeight, setManualSortWeight] = useState('');
   const [salesScore, setSalesScore] = useState('');
   const [sizes, setSizes] = useState<string[]>([]);
@@ -44,9 +46,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     setDescription(product.description ?? '');
     setDescriptionEn(product.descriptionEn ?? '');
     setShortDescription(product.shortDescription ?? '');
+    setShortDescriptionEn(product.shortDescriptionEn ?? '');
     setNameEn(product.nameEn ?? '');
     setLengthLabel(product.lengthLabel ?? '');
     setFabricInfo(product.fabricInfo ?? '');
+    setFabricInfoEn(product.fabricInfoEn ?? '');
     setManualSortWeight(product.manualSortWeight?.toString() ?? '');
     setSalesScore(product.salesScore ?? '');
     setSizes(product.sizes.map((s) => s.label));
@@ -60,9 +64,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           description: description || null,
           descriptionEn: descriptionEn || null,
           shortDescription: shortDescription || null,
+          shortDescriptionEn: shortDescriptionEn || null,
           nameEn: nameEn || null,
           lengthLabel: lengthLabel || null,
           fabricInfo: fabricInfo || null,
+          fabricInfoEn: fabricInfoEn || null,
           manualSortWeight: manualSortWeight ? Number(manualSortWeight) : null,
           salesScore: salesScore ? Number(salesScore) : null,
           sizes,
@@ -173,6 +179,17 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </label>
 
           <label className="flex flex-col gap-[5px] text-[14px]">
+            Kısa Açıklama (İngilizce — opsiyonel override)
+            <textarea
+              value={shortDescriptionEn}
+              onChange={(e) => setShortDescriptionEn(e.target.value)}
+              rows={2}
+              placeholder="Boş bırakılırsa İngilizce katalog üretiminde Türkçe kısa açıklama Gemini ile otomatik çevrilir."
+              className="border border-[var(--color-pebble)] bg-transparent p-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
             Ürün Adı (İngilizce)
             <input
               value={nameEn}
@@ -186,6 +203,15 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             <input
               value={fabricInfo}
               onChange={(e) => setFabricInfo(e.target.value)}
+              className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
+            />
+          </label>
+
+          <label className="flex flex-col gap-[5px] text-[14px]">
+            Kumaş Bilgisi (İngilizce)
+            <input
+              value={fabricInfoEn}
+              onChange={(e) => setFabricInfoEn(e.target.value)}
               className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] text-[14px] outline-none"
             />
           </label>

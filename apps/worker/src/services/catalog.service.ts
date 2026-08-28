@@ -1,5 +1,7 @@
-import { calculatePrice, CATALOG_TEMPLATES } from '@he-qa/db';
+import { calculatePrice, CATALOG_TEMPLATES, extractDefiningSentence, extractFabricComposition, extractFabricMaterialFallback } from '@he-qa/db';
 import { prisma } from '../db/prisma';
+import { translateToEnglish } from './translation.service';
+import { logger } from '../utils/logger';
 
 // variantOrder boşsa ya da colorLabel içinde yoksa tüm bu tür öğeler aynı index'i alır;
 // Array.sort stabil olduğundan bu durumda tsoft'tan gelen ham sıra korunur (bkz. getCatalogDetail).
@@ -14,6 +16,7 @@ export interface CreateCatalogInput {
   coverSubtitle?: string;
   currency: 'TRY' | 'USD' | 'EUR';
   templateId: string;
+  language: 'TR' | 'AR' | 'EN';
   productIds: string[];
   createdBy: string;
   // Katalog Oluşturucu'daki "artırılabilir" sayfa başlıkları — productId -> bu üründe
@@ -35,6 +38,7 @@ export async function createCatalog(input: CreateCatalogInput) {
       coverTitle: input.coverTitle,
       coverSubtitle: input.coverSubtitle,
       templateId: input.templateId,
+      language: input.language,
       createdBy: input.createdBy,
       status: 'DRAFT',
       items: {
@@ -48,6 +52,88 @@ export async function createCatalog(input: CreateCatalogInput) {
     include: { items: true },
   });
   return catalog;
+}
+
+type TranslatableProduct = {
+  id: string;
+  name: string;
+  description: string | null;
+  descriptionEn: string | null;
+  shortDescription: string | null;
+  shortDescriptionEn: string | null;
+  nameEn: string | null;
+  fabricInfo: string | null;
+  fabricInfoEn: string | null;
+};
+
+// İngilizce katalog önizleme/PDF üretiminde, editörün elle çevirmediği ürün metinlerini
+// (ad/açıklama/kısa açıklama/kumaş) Gemini ile Türkçeden çevirip DB'ye yazar — bir sonraki
+// istekte aynı ürün için tekrar çevrilmez. Her alan ayrı try/catch ile denenir; biri
+// başarısız olursa diğerleri etkilenmez ve şablon o alan için Türkçe metne düşer (bkz.
+// Template.tsx) — sayfa hiçbir zaman boş kalmaz.
+const TRANSLATE_CONCURRENCY = 4;
+
+async function fillMissingEnglishContent(items: { product: TranslatableProduct }[]) {
+  const pending = items.filter(
+    (item) =>
+      !item.product.nameEn ||
+      (!item.product.descriptionEn && item.product.description) ||
+      (!item.product.shortDescriptionEn && (item.product.shortDescription || item.product.description)) ||
+      (!item.product.fabricInfoEn && (item.product.fabricInfo || item.product.description))
+  );
+
+  for (let i = 0; i < pending.length; i += TRANSLATE_CONCURRENCY) {
+    const batch = pending.slice(i, i + TRANSLATE_CONCURRENCY);
+    await Promise.all(
+      batch.map(async ({ product }) => {
+        const data: Record<string, string> = {};
+
+        if (!product.nameEn && product.name) {
+          try {
+            data.nameEn = await translateToEnglish(product.name);
+          } catch (err) {
+            logger.error(`[catalog/translate] ürün ${product.id} nameEn: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+
+        if (!product.descriptionEn && product.description) {
+          try {
+            data.descriptionEn = await translateToEnglish(product.description);
+          } catch (err) {
+            logger.error(`[catalog/translate] ürün ${product.id} descriptionEn: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+
+        if (!product.shortDescriptionEn) {
+          const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
+          if (trExcerpt) {
+            try {
+              data.shortDescriptionEn = await translateToEnglish(trExcerpt);
+            } catch (err) {
+              logger.error(`[catalog/translate] ürün ${product.id} shortDescriptionEn: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+        }
+
+        if (!product.fabricInfoEn) {
+          const trFabric =
+            extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
+          if (trFabric) {
+            try {
+              data.fabricInfoEn = await translateToEnglish(trFabric);
+            } catch (err) {
+              logger.error(`[catalog/translate] ürün ${product.id} fabricInfoEn: ${err instanceof Error ? err.message : String(err)}`);
+            }
+          }
+        }
+
+        if (Object.keys(data).length > 0) {
+          await prisma.product.update({ where: { id: product.id }, data });
+          Object.assign(product, data);
+        }
+      })
+    );
+  }
 }
 
 export async function listCatalogs() {
@@ -78,6 +164,10 @@ export async function getCatalogDetail(id: string) {
     },
   });
   if (!catalog) return null;
+
+  if (catalog.language === 'EN') {
+    await fillMissingEnglishContent(catalog.items);
+  }
 
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   const discountPct = settings ? Number(settings.wholesaleDiscountPct) : 40;

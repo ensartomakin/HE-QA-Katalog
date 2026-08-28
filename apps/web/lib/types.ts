@@ -32,9 +32,11 @@ export interface Product {
   description: string | null;
   descriptionEn: string | null;
   shortDescription: string | null;
+  shortDescriptionEn: string | null;
   nameEn: string | null;
   lengthLabel: string | null;
   fabricInfo: string | null;
+  fabricInfoEn: string | null;
   colorLabel: string | null;
   sourcePriceTry: string; // Prisma Decimal → JSON'da string olarak gelir
   stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'UNKNOWN';
@@ -47,6 +49,7 @@ export interface Product {
 
 export type CatalogCurrency = 'TRY' | 'USD' | 'EUR';
 export type CatalogStatus = 'DRAFT' | 'GENERATING' | 'READY' | 'FAILED';
+export type CatalogLanguage = 'TR' | 'AR' | 'EN';
 
 export interface CatalogItemColorVariant {
   colorLabel: string;
@@ -83,6 +86,7 @@ export interface CatalogDetail {
   coverSubtitle: string | null;
   coverImageUrl: string | null;
   templateId: string;
+  language: CatalogLanguage;
   status: CatalogStatus;
   pdfUrl: string | null;
   generatedAt: string | null;

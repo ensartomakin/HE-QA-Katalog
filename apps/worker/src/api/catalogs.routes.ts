@@ -23,6 +23,7 @@ const createSchema = z.object({
   coverSubtitle: z.string().optional(),
   currency: z.enum(['TRY', 'USD', 'EUR']).default('TRY'),
   templateId: z.enum(CATALOG_TEMPLATE_IDS).default(DEFAULT_CATALOG_TEMPLATE_ID),
+  language: z.enum(['TR', 'AR', 'EN']).default('TR'),
   productIds: z.array(z.string()).min(1),
   createdBy: z.string().min(1),
   titleOverrides: z.record(z.string(), z.string()).optional(),

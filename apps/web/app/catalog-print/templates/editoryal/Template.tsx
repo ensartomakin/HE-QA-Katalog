@@ -1,7 +1,9 @@
 import './editoryal.css';
-import type { CatalogDetail, CatalogItem } from '@/lib/types';
+import { extractDefiningSentence, extractFabricComposition, extractFabricMaterialFallback } from '@he-qa/db';
+import type { CatalogDetail, CatalogItem, CatalogLanguage } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
 import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
+import { getCatalogStrings, type CatalogStrings } from '@/lib/catalog-i18n';
 
 // Görseller object-fit:cover ile kutuya kırpılıyor (bkz. editoryal.css) — varsayılan odak
 // noktası üstte tutuluyor ki manken fotoğraflarında kafa kırpılmasın. Kullanıcı önizlemede
@@ -19,19 +21,9 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   EUR: '€',
 };
 
-function formatPrice(value: number, currency: CatalogDetail['currency']): string {
-  return `${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
+function formatPrice(value: number, currency: CatalogDetail['currency'], locale: string): string {
+  return `${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
 }
-
-// Gerçek ürün açıklamaları (T-Soft'tan) genelde kumaş/kesim/amaç bilgisini tek bir açılış
-// cümlesinde verip bakım talimatı, beden/ölçü tablosu gibi katalog sayfasına uygun olmayan
-// uzun bir kuyrukla devam ediyor (bkz. "Spor Görünümlü Tesettür Mayo Takımı" örneği:
-// "%80 poliamid ve %20 elastan karışımıyla üretilen bu tesettür mayo, deniz ve havuz
-// kullanımında maksimum konfor sunmak için özel olarak tasarlanmıştır."). Bu liste, o
-// açılış cümlesi yerine yanlışlıkla bir bakım/ölçü cümlesi seçilmesini önlemek için var.
-const DESCRIPTION_STOP_WORDS = [
-  'yıka', 'kuruma', 'kurut', 'ütü', 'beden:', 'boy:', 'boyu:', 'kalıp bilgisi', 'ölçü', 'iade', 'değişim', 'garanti', 'stok',
-];
 
 // T-Soft'taki ürün adları genelde model adı + rengin/desenin adıyla bitiyor (örn.
 // "RÜZGARLIK DETAYLI UZUN YÜZME TAKIMI AÇIK HAKİ" → model + "Açık Haki" rengi).
@@ -96,68 +88,6 @@ function resolveColorHex(name: string): string | null {
   if (COLOR_NAME_HEX[stripped]) return COLOR_NAME_HEX[stripped];
   const lastWord = words[words.length - 1];
   return (lastWord && COLOR_NAME_HEX[lastWord]) || null;
-}
-
-// AI kullanmadan, kural tabanlı tek cümle seçimi — açıklamayı cümle cümle baştan okur ve
-// bakım/ölçü ile ilgili olmayan İLK cümleyi (ürünü tanımlayan açılış cümlesi) döndürür.
-function extractDefiningSentence(description: string | null): string | null {
-  if (!description) return null;
-  const sentences = description
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const meaningful = sentences.find((s) => !DESCRIPTION_STOP_WORDS.some((w) => s.toLowerCase().includes(w)));
-  return meaningful ?? sentences[0] ?? null;
-}
-
-// Ürün açıklamaları genelde kumaş içeriğiyle başlıyor (örn. "%100 polyester içerikli...",
-// "%80 poliamid ve %20 elastan karışımıyla üretilen..."). Kumaş paneli için bu, ayrı bir
-// fabricInfo alanına güvenmek yerine açıklama içinden yüzde+malzeme kalıpları çıkarılıp
-// kısa bir özet ("%100 polyester", "%80 poliamid ve %20 elastan") olarak gösteriliyor.
-const FABRIC_COMPOSITION_ITEM = '%\\s*\\d+\\s*[a-zA-ZçÇğĞıİöÖşŞüÜ]+';
-const FABRIC_COMPOSITION_RE = new RegExp(`${FABRIC_COMPOSITION_ITEM}(?:\\s*(?:,|ve)\\s*${FABRIC_COMPOSITION_ITEM})*`, 'i');
-
-function extractFabricComposition(description: string | null): string | null {
-  if (!description) return null;
-  const match = description.match(FABRIC_COMPOSITION_RE);
-  if (!match) return null;
-  return match[0].replace(/\s+/g, ' ').trim();
-}
-
-// Yüzde kalıbı olmadan sadece malzeme adı geçen açıklamalar için (örn. "doğal pamuktan
-// yapılmıştır" → "Pamuk") — yaygın kumaş adlarının Türkçe çekim ekleriyle (pamuktan,
-// pamuklu, pamuğun vb.) eşleşen kaba bir liste; açıklamada en erken geçen malzemeye göre
-// tek bir kelimeye indirgenir.
-// Küçük harfe çevrilmiş metne karşı eşleştiriliyor (bkz. aşağı) — JS'in /i bayrağı
-// Türkçe büyük "İ" harfini doğru küçültmediği için (İ → yanlışlıkla "i̇" olur),
-// içerik önce toLocaleLowerCase('tr') ile normalize ediliyor.
-const FABRIC_MATERIALS: { name: string; re: RegExp }[] = [
-  { name: 'Pamuk', re: /pamu[kğ]\w*/ },
-  { name: 'Paraşüt Kumaş', re: /paraşüt\w*/ },
-  { name: 'Polyester', re: /polyester\w*/ },
-  { name: 'Elastan', re: /elastan\w*/ },
-  { name: 'Poliamid', re: /poliamid\w*/ },
-  { name: 'Viskon', re: /visko[nz]\w*/ },
-  { name: 'Keten', re: /keten\w*/ },
-  { name: 'Yün', re: /y[üu]n\w*/ },
-  { name: 'İpek', re: /ipek\w*/ },
-  { name: 'Modal', re: /modal\w*/ },
-  { name: 'Naylon', re: /naylon\w*/ },
-  { name: 'Likra', re: /likra\w*|spandex\w*/ },
-  { name: 'Rayon', re: /rayon\w*/ },
-];
-
-function extractFabricMaterialFallback(description: string | null): string | null {
-  if (!description) return null;
-  const lower = description.toLocaleLowerCase('tr');
-  let best: { index: number; name: string } | null = null;
-  for (const { name, re } of FABRIC_MATERIALS) {
-    const match = lower.match(re);
-    if (match && match.index !== undefined && (!best || match.index < best.index)) {
-      best = { index: match.index, name };
-    }
-  }
-  return best?.name ?? null;
 }
 
 interface MediaItem {
@@ -228,18 +158,26 @@ function EdRunningHeader({ title }: { title: string }) {
   );
 }
 
-function EdSizeLine({ sizes, lengthLabelText }: { sizes: string[]; lengthLabelText: string | null }) {
+function EdSizeLine({
+  sizes,
+  lengthLabelText,
+  strings,
+}: {
+  sizes: string[];
+  lengthLabelText: string | null;
+  strings: CatalogStrings;
+}) {
   if (sizes.length === 0 && !lengthLabelText) return null;
   return (
     <div className="ed-size-line">
       {sizes.length > 0 && (
         <span>
-          <strong>Beden:</strong> {sizes.join(' ')}
+          <strong>{strings.size}</strong> {sizes.join(' ')}
         </span>
       )}
       {lengthLabelText && (
         <span>
-          <strong>Boy:</strong> {lengthLabelText}
+          <strong>{strings.length}</strong> {lengthLabelText}
         </span>
       )}
     </div>
@@ -384,6 +322,8 @@ function EdProductPage({
   brandLogoUrl,
   defaultHeaderTitle,
   pageNumber,
+  language,
+  strings,
 }: {
   item: CatalogItem;
   mediaChunk: MediaItem[];
@@ -392,6 +332,8 @@ function EdProductPage({
   brandLogoUrl: string | null;
   defaultHeaderTitle: string;
   pageNumber: number;
+  language: CatalogLanguage;
+  strings: CatalogStrings;
 }) {
   // Katalog Oluşturucu'da bu ürüne özel bir sayfa başlığı seçilmişse (bkz. "artırılabilir
   // başlık" özelliği) o kullanılır; yoksa kataloğun varsayılan başlığı.
@@ -399,12 +341,28 @@ function EdProductPage({
   const sizeLabels = item.product.sizes.map((s) => s.label);
   // Ürün Detay ekranında editörün elle girdiği bir kısa açıklama varsa öncelikli kullanılır;
   // yoksa açıklamadan kural tabanlı olarak (AI kullanılmadan) tek bir tanımlayıcı cümle çıkarılır.
-  const descriptionExcerpt = item.product.shortDescription?.trim() || extractDefiningSentence(item.product.description);
-  const fabricComposition =
+  const trExcerpt = item.product.shortDescription?.trim() || extractDefiningSentence(item.product.description);
+  const trFabric =
     extractFabricComposition(item.product.description) ??
     extractFabricMaterialFallback(item.product.description) ??
     item.product.fabricInfo;
-  const displayName = stripColorFromName(item.product.name, item.product.colorLabel);
+
+  // İngilizce katalogda önce editörün (veya Gemini çevirisinin) doldurduğu EN alanlar
+  // denenir; hâlâ boşsa Türkçe metne düşülür (bkz. catalog.service.ts fillMissingEnglishContent
+  // — çeviri başarısız olursa bu alanlar null kalabilir) — sayfa hiçbir zaman boş kalmaz.
+  const displayNameSource = language === 'EN' ? item.product.nameEn || item.product.name : item.product.name;
+  const displayName = stripColorFromName(displayNameSource, item.product.colorLabel);
+  const descriptionExcerpt =
+    language === 'EN'
+      ? item.product.shortDescriptionEn?.trim() || extractDefiningSentence(item.product.descriptionEn) || trExcerpt
+      : trExcerpt;
+  const fabricComposition =
+    language === 'EN'
+      ? item.product.fabricInfoEn ??
+        extractFabricComposition(item.product.descriptionEn) ??
+        extractFabricMaterialFallback(item.product.descriptionEn) ??
+        trFabric
+      : trFabric;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -436,16 +394,16 @@ function EdProductPage({
                     })}
                   </div>
                 )}
-                <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} />
+                <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} strings={strings} />
                 {fabricComposition && (
                   <div className="ed-fabric-line">
-                    <strong>Kumaş:</strong> {fabricComposition}
+                    <strong>{strings.fabric}</strong> {fabricComposition}
                   </div>
                 )}
                 <div className="ed-price-block">
-                  <span className="ed-price-label">Toptan Fiyat:</span>
-                  <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency)}</span>
-                  <span className="ed-price-value">{formatPrice(item.priceDisplay, currency)}</span>
+                  <span className="ed-price-label">{strings.wholesalePrice}</span>
+                  <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency, strings.locale)}</span>
+                  <span className="ed-price-value">{formatPrice(item.priceDisplay, currency, strings.locale)}</span>
                   <span className="ed-price-discount">%{Math.round(discountPct)}</span>
                 </div>
               </div>
@@ -467,37 +425,35 @@ function EdProductPage({
 function EdAboutPage({
   brandLogoUrl,
   pageNumber,
+  strings,
 }: {
   brandLogoUrl: string | null;
   pageNumber: number;
+  strings: CatalogStrings;
 }) {
   return (
     <div className="pdf-page ed-about-page">
       <div className="ed-page-frame">
         <div className="ed-about-layout">
           <div className="ed-about-col">
-            <div className="ed-about-heading">HAKKIMIZDA</div>
-            <p className="ed-about-text">
-              2014 yılında kurulan EKD TEKSTİL SAN. VE TİC. LTD ŞTİ, faaliyete geçtiği günden bu yana kaliteyi ilke
-              edinmiş, doğal içerikli kumaşları ulaşılabilir fiyatlarla müşterilerine sunan çevreye saygılı bir
-              markadır.
-            </p>
+            <div className="ed-about-heading">{strings.aboutHeading}</div>
+            <p className="ed-about-text">{strings.aboutText}</p>
           </div>
 
           <div className="ed-rule ed-rule-vertical" />
 
           <div className="ed-contact-col">
-            <div className="ed-about-heading">İLETİŞİM</div>
+            <div className="ed-about-heading">{strings.contactHeading}</div>
             <div className="ed-contact-row">
-              <div className="ed-label">Telefon</div>
+              <div className="ed-label">{strings.phoneLabel}</div>
               <div className="ed-contact-value">+90 850 532 12 63</div>
             </div>
             <div className="ed-contact-row">
-              <div className="ed-label">Adres</div>
+              <div className="ed-label">{strings.addressLabel}</div>
               <div className="ed-contact-value">Erenler Mah. 1201 Sk. No:5 B31 Meydan 54 AVM / Erenler/SAKARYA</div>
             </div>
             <div className="ed-contact-row">
-              <div className="ed-label">Web</div>
+              <div className="ed-label">{strings.webLabel}</div>
               <div className="ed-contact-value">WWW.HE-QA.COM</div>
             </div>
           </div>
@@ -527,9 +483,10 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
   );
   const totalPages = productPages.length + 2; // kapak + ürün sayfaları + hakkımızda/iletişim
   const defaultHeaderTitle = catalog.coverTitle || catalog.name;
+  const strings = getCatalogStrings(catalog.language);
 
   return (
-    <div className="catalog-print editoryal">
+    <div className="catalog-print editoryal" lang={strings.htmlLang}>
       <div className="pdf-page ed-cover-page">
         {catalog.coverImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -547,10 +504,12 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
           brandLogoUrl={settings.brandLogoUrl}
           defaultHeaderTitle={defaultHeaderTitle}
           pageNumber={index + 2}
+          language={catalog.language}
+          strings={strings}
         />
       ))}
 
-      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} pageNumber={totalPages} />
+      <EdAboutPage brandLogoUrl={settings.brandLogoUrl} pageNumber={totalPages} strings={strings} />
     </div>
   );
 }
