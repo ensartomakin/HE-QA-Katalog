@@ -354,22 +354,30 @@ function EdProductPage({
     extractFabricMaterialFallback(item.product.description) ??
     item.product.fabricInfo;
 
-  // İngilizce katalogda önce editörün (veya Gemini çevirisinin) doldurduğu EN alanlar
-  // denenir; hâlâ boşsa Türkçe metne düşülür (bkz. catalog.service.ts fillMissingEnglishContent
-  // — çeviri başarısız olursa bu alanlar null kalabilir) — sayfa hiçbir zaman boş kalmaz.
-  const displayNameSource = language === 'EN' ? item.product.nameEn || item.product.name : item.product.name;
+  // İngilizce/Arapça katalogda önce editörün (veya Gemini çevirisinin) doldurduğu ilgili
+  // dildeki alanlar denenir; hâlâ boşsa Türkçe metne düşülür (bkz. catalog.service.ts
+  // fillMissingEnglishContent/fillMissingArabicContent — çeviri başarısız olursa bu alanlar
+  // null kalabilir) — sayfa hiçbir zaman boş kalmaz. Arapça için T-Soft'ta karşılığı
+  // olmadığından (yalnızca İngilizce "Dil" sekmesi var) kural tabanlı çıkarım yok —
+  // shortDescriptionAr/fabricInfoAr zaten Türkçe kısa metnin doğrudan çevirisi.
+  const displayNameSource =
+    language === 'EN' ? item.product.nameEn || item.product.name : language === 'AR' ? item.product.nameAr || item.product.name : item.product.name;
   const displayName = stripColorFromName(displayNameSource, item.product.colorLabel);
   const descriptionExcerpt =
     language === 'EN'
       ? item.product.shortDescriptionEn?.trim() || extractDefiningSentenceEn(item.product.descriptionEn) || trExcerpt
-      : trExcerpt;
+      : language === 'AR'
+        ? item.product.shortDescriptionAr?.trim() || trExcerpt
+        : trExcerpt;
   const fabricComposition =
     language === 'EN'
       ? item.product.fabricInfoEn ??
         extractFabricCompositionEn(item.product.descriptionEn) ??
         extractFabricMaterialFallbackEn(item.product.descriptionEn) ??
         trFabric
-      : trFabric;
+      : language === 'AR'
+        ? item.product.fabricInfoAr ?? trFabric
+        : trFabric;
 
   return (
     <div className="pdf-page ed-product-page">
@@ -493,7 +501,7 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
   const strings = getCatalogStrings(catalog.language);
 
   return (
-    <div className="catalog-print editoryal" lang={strings.htmlLang}>
+    <div className="catalog-print editoryal" lang={strings.htmlLang} dir={strings.direction}>
       <div className="pdf-page ed-cover-page">
         {catalog.coverImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element

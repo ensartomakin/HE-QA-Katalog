@@ -20,12 +20,16 @@ model Product {
   category           Category  @relation(fields: [categoryId], references: [id])
   description        String?
   descriptionEn      String?
+  descriptionAr      String?   // Arapça katalogda gösterilen açıklama — T-Soft'ta Arapça kaynak olmadığından tamamen Gemini ile çevrilir (bkz. catalog.service.ts fillMissingArabicContent)
   shortDescription   String?   // Katalog PDF'inde gösterilen ~20 kelimelik özet — AI ile üretilir, editör düzenleyebilir (bkz. products.routes.ts generate-short-description)
   shortDescriptionEn String?   // İngilizce katalogda gösterilen kısa açıklama — boşsa shortDescription/description'dan Gemini ile otomatik çevrilir (bkz. catalog.service.ts fillMissingEnglishContent)
+  shortDescriptionAr String?   // Arapça katalogda gösterilen kısa açıklama — Gemini ile Türkçe kısa açıklamadan çevrilir
   nameEn             String?
+  nameAr             String?
   lengthLabel        String?   // "85 cm" gibi serbest metin — editoryal şablonun "Boy" alanı, manuel girilir
   fabricInfo         String?
   fabricInfoEn       String?   // İngilizce katalogda gösterilen kumaş bilgisi — boşsa fabricInfo/description'dan Gemini ile otomatik çevrilir (bkz. catalog.service.ts fillMissingEnglishContent)
+  fabricInfoAr       String?   // Arapça katalogda gösterilen kumaş bilgisi — Gemini ile Türkçe kumaş bilgisinden çevrilir
   colorLabel         String?   // tsoft'ta her renk ayrı bir ürün/ProductCode'dur — bu ürünün kendi rengi
   tsoftRelatedIds    String[]  @default([]) // RelatedProductsIds1 — kardeş renk varyantlarının tsoftProductId'leri
   sourcePriceTry     Decimal   @db.Decimal(12, 2)

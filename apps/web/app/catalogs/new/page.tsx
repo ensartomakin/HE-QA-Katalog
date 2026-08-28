@@ -199,11 +199,20 @@ export default function NewCatalogPage() {
               >
                 <option value="TR">Türkçe</option>
                 <option value="EN">İngilizce</option>
+                <option value="AR">Arapça</option>
               </select>
               {language === 'EN' && (
                 <span className="text-[12px] text-[var(--color-bark)]">
-                  Ürünlerin İngilizce alanları boşsa Gemini ile otomatik çevrilip kaydedilir; editör sonradan Ürün
-                  Detay ekranından düzeltebilir.
+                  Ürünlerin İngilizce alanları boşsa önce T-Soft&apos;un kendi &quot;Dil&quot; sekmesinden çekilir,
+                  orada da yoksa Gemini ile otomatik çevrilip kaydedilir; editör sonradan Ürün Detay ekranından
+                  düzeltebilir.
+                </span>
+              )}
+              {language === 'AR' && (
+                <span className="text-[12px] text-[var(--color-bark)]">
+                  T-Soft&apos;ta Arapça karşılığı olmadığından ürünlerin Arapça alanları Gemini ile otomatik
+                  çevrilip kaydedilir; editör sonradan Ürün Detay ekranından düzeltebilir. Sayfa düzeni otomatik
+                  olarak sağdan sola (RTL) düzenlenir.
                 </span>
               )}
             </label>
