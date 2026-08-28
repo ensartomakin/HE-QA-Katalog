@@ -453,7 +453,7 @@ function EdAboutPage({
             <div className="ed-about-heading">{strings.contactHeading}</div>
             <div className="ed-contact-row">
               <div className="ed-label">{strings.phoneLabel}</div>
-              <div className="ed-contact-value">+90 850 532 12 63</div>
+              <div className="ed-contact-value">+90 530 790 76 54</div>
             </div>
             <div className="ed-contact-row">
               <div className="ed-label">{strings.addressLabel}</div>
