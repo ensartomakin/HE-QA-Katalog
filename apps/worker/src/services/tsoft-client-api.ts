@@ -8,6 +8,7 @@ export interface TSoftClientApi {
   getCategoryProducts(categoryId: string): Promise<{ productCode: string }[]>;
   getCategoryProductsFull(categoryId: string): Promise<TSoftProduct[]>;
   getProductDetails(productCodes: string[]): Promise<TSoftProduct[]>;
+  getProductLanguage(productCode: string, language: string): Promise<{ productName: string; description: string; shortDescription: string } | null>;
 
   getSalesReport(productCodes: string[], days: number): Promise<TSoftSalesData[]>;
   setKategoriSira(payload: TSoftRankPayload[]): Promise<void>;
