@@ -48,6 +48,10 @@ export interface TSoftProduct {
   relatedProductIds?: string[];
   colors?: { name: string; hexPreview?: string }[];
   images?: string[];
+  // T-Soft panelindeki "Aktif" anahtarı — ürünün gerçekten satışta olup olmadığını gösterir
+  // (bkz. sync.service.ts upsertProduct → Product.isActive). "Toplu Çeviri" gibi işlemlerde
+  // yalnızca gerçekten satılan ürünlere odaklanmak için kullanılıyor.
+  isActive: boolean;
 }
 
 export interface TSoftSalesData {

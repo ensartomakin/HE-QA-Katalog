@@ -9,7 +9,7 @@ import {
   extractFabricMaterialFallbackEn,
 } from '@he-qa/db';
 import { prisma } from '../db/prisma';
-import { translateText } from './translation.service';
+import { translateFields } from './translation.service';
 import { getTsoftClient } from './tsoft-client';
 import { logger } from '../utils/logger';
 
@@ -87,9 +87,21 @@ type TranslatableProduct = {
 // İngilizce girilmemişse Gemini ile Türkçeden çevirip DB'ye yazar. Sonuç kalıcı olduğundan
 // bir sonraki istekte aynı ürün için tekrar çekilmez/çevrilmez. Her adım ayrı try/catch
 // ile denenir; biri başarısız olursa diğerleri etkilenmez ve şablon o alan için Türkçe
-// metne düşer (bkz. Template.tsx) — sayfa hiçbir zaman boş kalmaz.
+// metne düşer (bkz. Template.tsx) — sayfa hiçbir zaman boş kalmaz. Not: Gemini'nin ücretsiz
+// katmanı çok düşük bir dakikalık istek sınırına sahip olduğundan (bkz. translation.service.ts
+// üstteki not) büyük kataloglarda bu sınıra çarpılıp çoğu alan Türkçeye düşebilir —
+// eşzamanlılığı burada düşürmek 429'ları önlemiyor (kota zaten anında doluyor), sadece
+// isteği yavaşlatıp PDF üretimindeki 60sn zaman aşımı riskini artırıyor; asıl çözüm
+// faturalandırmayı aktif etmek.
 const TRANSLATE_CONCURRENCY = 4;
 
+// İngilizce içerik SADECE T-Soft'un kendi "Dil" sekmesinden gelir (bkz. tsoft-client.ts
+// getProductLanguage) — Gemini çevirisi kullanılmıyor (kullanıcı kararı: "İngilizce'yi
+// T-Soft'tan alacaktın, çeviri ile değil"). Bir ürün için T-Soft'ta İngilizce girilmemişse
+// nameEn/descriptionEn boş kalır (şablon Türkçe metne düşer, bkz. Template.tsx) — editör
+// isterse T-Soft panelinden veya Ürün Detay ekranındaki manuel alanlardan doldurabilir.
+// Bu sayede Gemini'nin kısıtlı dakikalık kotası tamamen Arapçaya ayrılmış olur (bkz.
+// fillMissingArabicContent) — İngilizce'de T-Soft dışı bir üretim maliyeti yok.
 async function fillMissingEnglishContent(items: { product: TranslatableProduct }[]) {
   const pending = items.filter(
     (item) =>
@@ -101,9 +113,10 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
   if (pending.length === 0) return;
 
   const tsoft = await getTsoftClient().catch((err) => {
-    logger.error(`[catalog/translate] T-Soft istemcisi alınamadı, doğrudan Gemini'ye düşülüyor: ${err instanceof Error ? err.message : String(err)}`);
+    logger.error(`[catalog/translate] T-Soft istemcisi alınamadı: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   });
+  if (!tsoft) return;
 
   for (let i = 0; i < pending.length; i += TRANSLATE_CONCURRENCY) {
     const batch = pending.slice(i, i + TRANSLATE_CONCURRENCY);
@@ -111,86 +124,37 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
       batch.map(async ({ product }) => {
         const data: Record<string, string> = {};
 
-        // 1) T-Soft'un kendi İngilizce "Dil" sekmesi — editör tarafından girilmiş gerçek
-        // çeviri, Gemini'den önce denenir. Boş/hata durumunda sessizce Gemini'ye düşülür.
         let tsoftName = '';
         let tsoftDescription = '';
         let tsoftShort = '';
-        if (tsoft && (!product.nameEn || !product.descriptionEn || !product.shortDescriptionEn)) {
-          try {
-            const lang = await tsoft.getProductLanguage(product.code, 'en');
-            if (lang) {
-              tsoftName = lang.productName;
-              tsoftDescription = lang.description;
-              tsoftShort = lang.shortDescription;
-            }
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
+        try {
+          const lang = await tsoft.getProductLanguage(product.code, 'en');
+          if (lang) {
+            tsoftName = lang.productName;
+            tsoftDescription = lang.description;
+            tsoftShort = lang.shortDescription;
           }
+        } catch (err) {
+          logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
         }
 
-        if (!product.nameEn) {
-          if (tsoftName) {
-            data.nameEn = tsoftName;
-          } else if (product.name) {
-            try {
-              data.nameEn = await translateText(product.name, 'English');
-            } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} nameEn: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }
-        }
+        if (tsoftName && !product.nameEn) data.nameEn = tsoftName;
+        if (tsoftDescription && !product.descriptionEn) data.descriptionEn = tsoftDescription;
 
-        if (!product.descriptionEn) {
-          if (tsoftDescription) {
-            data.descriptionEn = tsoftDescription;
-          } else if (product.description) {
-            try {
-              data.descriptionEn = await translateText(product.description, 'English');
-            } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} descriptionEn: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }
-        }
-
-        // Sonraki iki alan (kısa açıklama, kumaş), az önce elde edilen İngilizce açıklama
-        // üzerinden kural tabanlı çıkarım yapabilmek için descriptionEn'in EN halini bilmeli
-        // — DB'de zaten varsa oradan, bu istekte yeni geldiyse data.descriptionEn'den okunur.
+        // Kısa açıklama/kumaş, T-Soft'un kendi ShortDescription'ı yoksa İngilizce açıklamadan
+        // (T-Soft'tan geldiyse) kural tabanlı çıkarılır — burada da Gemini'ye düşülmüyor.
         const resolvedDescriptionEn = data.descriptionEn ?? product.descriptionEn;
 
-        if (!product.shortDescriptionEn) {
-          let shortEn = tsoftShort || (resolvedDescriptionEn ? extractDefiningSentenceEn(resolvedDescriptionEn) : null);
-          if (!shortEn) {
-            const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
-            if (trExcerpt) {
-              try {
-                shortEn = await translateText(trExcerpt, 'English');
-              } catch (err) {
-                logger.error(`[catalog/translate] ürün ${product.id} shortDescriptionEn: ${err instanceof Error ? err.message : String(err)}`);
-              }
-            }
-          }
-          if (shortEn) data.shortDescriptionEn = shortEn;
-        }
+        const shortFromRules = !product.shortDescriptionEn
+          ? tsoftShort || (resolvedDescriptionEn ? extractDefiningSentenceEn(resolvedDescriptionEn) : null)
+          : null;
+        if (shortFromRules) data.shortDescriptionEn = shortFromRules;
 
-        if (!product.fabricInfoEn) {
-          const enFabric = resolvedDescriptionEn
+        const fabricFromRules =
+          !product.fabricInfoEn && resolvedDescriptionEn
             ? extractFabricCompositionEn(resolvedDescriptionEn) ?? extractFabricMaterialFallbackEn(resolvedDescriptionEn)
             : null;
-          if (enFabric) {
-            data.fabricInfoEn = enFabric;
-          } else {
-            const trFabric =
-              extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
-            if (trFabric) {
-              try {
-                data.fabricInfoEn = await translateText(trFabric, 'English');
-              } catch (err) {
-                logger.error(`[catalog/translate] ürün ${product.id} fabricInfoEn: ${err instanceof Error ? err.message : String(err)}`);
-              }
-            }
-          }
-        }
+        if (fabricFromRules) data.fabricInfoEn = fabricFromRules;
 
         if (Object.keys(data).length > 0) {
           await prisma.product.update({ where: { id: product.id }, data });
@@ -207,7 +171,9 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
 // yazılır. Kısa açıklama/kumaş bilgisi de -EN akışının aksine- Arapça açıklamadan kural
 // tabanlı çıkarılmıyor; zaten kural tabanlı çıkarılmış Türkçe kısa metin doğrudan çevriliyor
 // (iki dilin farklı cümle seçmesini önler, aynı zamanda tam açıklamayı gereksiz yere
-// çevirmekten kaçınır).
+// çevirmekten kaçınır). Ürün başına eksik olan ne varsa TEK bir translateFields çağrısında
+// toplanıyor (bkz. translation.service.ts) — Gemini'nin dakikalık istek kotasını ürün başına
+// 4 yerine 1 istekle kullanıyor.
 async function fillMissingArabicContent(items: { product: TranslatableProduct }[]) {
   const pending = items.filter(
     (item) =>
@@ -222,46 +188,32 @@ async function fillMissingArabicContent(items: { product: TranslatableProduct }[
     const batch = pending.slice(i, i + TRANSLATE_CONCURRENCY);
     await Promise.all(
       batch.map(async ({ product }) => {
-        const data: Record<string, string> = {};
-
-        if (!product.nameAr && product.name) {
-          try {
-            data.nameAr = await translateText(product.name, 'Arabic');
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} nameAr: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
-
-        if (!product.descriptionAr && product.description) {
-          try {
-            data.descriptionAr = await translateText(product.description, 'Arabic');
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} descriptionAr: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
-
+        const toTranslate: Record<string, string> = {};
+        if (!product.nameAr && product.name) toTranslate.name = product.name;
+        if (!product.descriptionAr && product.description) toTranslate.description = product.description;
         if (!product.shortDescriptionAr) {
           const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
-          if (trExcerpt) {
-            try {
-              data.shortDescriptionAr = await translateText(trExcerpt, 'Arabic');
-            } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} shortDescriptionAr: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }
+          if (trExcerpt) toTranslate.shortExcerpt = trExcerpt;
         }
-
         if (!product.fabricInfoAr) {
           const trFabric =
             extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
-          if (trFabric) {
-            try {
-              data.fabricInfoAr = await translateText(trFabric, 'Arabic');
-            } catch (err) {
-              logger.error(`[catalog/translate] ürün ${product.id} fabricInfoAr: ${err instanceof Error ? err.message : String(err)}`);
-            }
-          }
+          if (trFabric) toTranslate.fabric = trFabric;
         }
+        if (Object.keys(toTranslate).length === 0) return;
+
+        let translated: Record<string, string> = {};
+        try {
+          translated = await translateFields(toTranslate, 'Arabic');
+        } catch (err) {
+          logger.error(`[catalog/translate] ürün ${product.id} Arapça toplu çeviri: ${err instanceof Error ? err.message : String(err)}`);
+        }
+
+        const data: Record<string, string> = {};
+        if (translated.name) data.nameAr = translated.name;
+        if (translated.description) data.descriptionAr = translated.description;
+        if (translated.shortExcerpt) data.shortDescriptionAr = translated.shortExcerpt;
+        if (translated.fabric) data.fabricInfoAr = translated.fabric;
 
         if (Object.keys(data).length > 0) {
           await prisma.product.update({ where: { id: product.id }, data });
@@ -270,6 +222,58 @@ async function fillMissingArabicContent(items: { product: TranslatableProduct }[
       })
     );
   }
+}
+
+const TRANSLATABLE_PRODUCT_SELECT = {
+  id: true,
+  code: true,
+  name: true,
+  description: true,
+  descriptionEn: true,
+  descriptionAr: true,
+  shortDescription: true,
+  shortDescriptionEn: true,
+  shortDescriptionAr: true,
+  nameEn: true,
+  nameAr: true,
+  fabricInfo: true,
+  fabricInfoEn: true,
+  fabricInfoAr: true,
+} as const;
+
+// Bir kataloğa dahil edildiğinde İngilizce/Arapça çevrilmesini beklemek yerine — Ürün
+// Yönetimi ekranından tetiklenir, henüz o dile çevrilmemiş (nameEn/nameAr'ı boş) AKTİF
+// ürünlerden küçük bir grubu (BULK_BATCH_SIZE) çevirip DB'ye yazar ve kalan sayıyı döndürür.
+// Web tarafı bu uç noktayı `remaining` sıfıra inene kadar art arda çağırır (bkz.
+// products/translate-batch route) — bu sayede Gemini'nin dakikalık kotasını aşmadan TÜM
+// katalog parça parça, sayfa açıkken izlenebilir şekilde çevrilebilir. Zaten çevrilmiş
+// ürünler where koşuluyla hiç seçilmiyor, bu yüzden tekrar çağırmak güvenli/idempotent.
+// isActive T-Soft'un kendi "Aktif" bayrağından senkronize edilir (bkz. sync.service.ts
+// upsertProduct) — pasif/satılmayan ürünlere boşuna çeviri kotası harcanmasın diye
+// (kullanıcı kararı: "7350 ürüne gerek yok, aktif ürünlerin çevirisini yap").
+const BULK_BATCH_SIZE = 12;
+
+export async function translateMissingProductsBatch(
+  language: 'EN' | 'AR'
+): Promise<{ processed: number; remaining: number }> {
+  const whereMissing = language === 'EN' ? { nameEn: null } : { nameAr: null };
+  const where = { ...whereMissing, archivedAt: null, isActive: true };
+
+  const products = await prisma.product.findMany({
+    where,
+    take: BULK_BATCH_SIZE,
+    orderBy: { createdAt: 'asc' },
+    select: TRANSLATABLE_PRODUCT_SELECT,
+  });
+
+  if (products.length > 0) {
+    const items = products.map((product) => ({ product }));
+    if (language === 'EN') await fillMissingEnglishContent(items);
+    else await fillMissingArabicContent(items);
+  }
+
+  const remaining = await prisma.product.count({ where });
+  return { processed: products.length, remaining };
 }
 
 export async function listCatalogs() {
