@@ -95,6 +95,13 @@ type TranslatableProduct = {
 // faturalandırmayı aktif etmek.
 const TRANSLATE_CONCURRENCY = 4;
 
+// İngilizce içerik SADECE T-Soft'un kendi "Dil" sekmesinden gelir (bkz. tsoft-client.ts
+// getProductLanguage) — Gemini çevirisi kullanılmıyor (kullanıcı kararı: "İngilizce'yi
+// T-Soft'tan alacaktın, çeviri ile değil"). Bir ürün için T-Soft'ta İngilizce girilmemişse
+// nameEn/descriptionEn boş kalır (şablon Türkçe metne düşer, bkz. Template.tsx) — editör
+// isterse T-Soft panelinden veya Ürün Detay ekranındaki manuel alanlardan doldurabilir.
+// Bu sayede Gemini'nin kısıtlı dakikalık kotası tamamen Arapçaya ayrılmış olur (bkz.
+// fillMissingArabicContent) — İngilizce'de T-Soft dışı bir üretim maliyeti yok.
 async function fillMissingEnglishContent(items: { product: TranslatableProduct }[]) {
   const pending = items.filter(
     (item) =>
@@ -106,9 +113,10 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
   if (pending.length === 0) return;
 
   const tsoft = await getTsoftClient().catch((err) => {
-    logger.error(`[catalog/translate] T-Soft istemcisi alınamadı, doğrudan Gemini'ye düşülüyor: ${err instanceof Error ? err.message : String(err)}`);
+    logger.error(`[catalog/translate] T-Soft istemcisi alınamadı: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   });
+  if (!tsoft) return;
 
   for (let i = 0; i < pending.length; i += TRANSLATE_CONCURRENCY) {
     const batch = pending.slice(i, i + TRANSLATE_CONCURRENCY);
@@ -116,47 +124,25 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
       batch.map(async ({ product }) => {
         const data: Record<string, string> = {};
 
-        // 1) T-Soft'un kendi İngilizce "Dil" sekmesi — editör tarafından girilmiş gerçek
-        // çeviri, Gemini'den önce denenir. Boş/hata durumunda sessizce Gemini'ye düşülür.
         let tsoftName = '';
         let tsoftDescription = '';
         let tsoftShort = '';
-        if (tsoft && (!product.nameEn || !product.descriptionEn || !product.shortDescriptionEn)) {
-          try {
-            const lang = await tsoft.getProductLanguage(product.code, 'en');
-            if (lang) {
-              tsoftName = lang.productName;
-              tsoftDescription = lang.description;
-              tsoftShort = lang.shortDescription;
-            }
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
+        try {
+          const lang = await tsoft.getProductLanguage(product.code, 'en');
+          if (lang) {
+            tsoftName = lang.productName;
+            tsoftDescription = lang.description;
+            tsoftShort = lang.shortDescription;
           }
+        } catch (err) {
+          logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
         }
 
-        // 2) T-Soft'ta yoksa ad/açıklama TEK bir Gemini isteğinde birlikte çevrilir (ayrı ayrı
-        // değil) — ikisi de genelde aynı anda eksik olduğundan istek sayısı yarıya iner.
         if (tsoftName && !product.nameEn) data.nameEn = tsoftName;
         if (tsoftDescription && !product.descriptionEn) data.descriptionEn = tsoftDescription;
 
-        const needName = !product.nameEn && !data.nameEn && Boolean(product.name);
-        const needDescription = !product.descriptionEn && !data.descriptionEn && Boolean(product.description);
-        if (needName || needDescription) {
-          const toTranslate: Record<string, string> = {};
-          if (needName) toTranslate.name = product.name;
-          if (needDescription) toTranslate.description = product.description as string;
-          try {
-            const translated = await translateFields(toTranslate, 'English');
-            if (translated.name) data.nameEn = translated.name;
-            if (translated.description) data.descriptionEn = translated.description;
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} İngilizce ad/açıklama: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
-
-        // Sonraki iki alan (kısa açıklama, kumaş), az önce elde edilen İngilizce açıklama
-        // üzerinden kural tabanlı çıkarım yapabilmek için descriptionEn'in EN halini bilmeli
-        // — DB'de zaten varsa oradan, bu istekte yeni geldiyse data.descriptionEn'den okunur.
+        // Kısa açıklama/kumaş, T-Soft'un kendi ShortDescription'ı yoksa İngilizce açıklamadan
+        // (T-Soft'tan geldiyse) kural tabanlı çıkarılır — burada da Gemini'ye düşülmüyor.
         const resolvedDescriptionEn = data.descriptionEn ?? product.descriptionEn;
 
         const shortFromRules = !product.shortDescriptionEn
@@ -169,29 +155,6 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
             ? extractFabricCompositionEn(resolvedDescriptionEn) ?? extractFabricMaterialFallbackEn(resolvedDescriptionEn)
             : null;
         if (fabricFromRules) data.fabricInfoEn = fabricFromRules;
-
-        // 3) Kural tabanlı çıkarım kısa açıklama/kumaş için yetersiz kaldıysa (nadir — descriptionEn
-        // yoksa ya da içinde yüzde/malzeme kalıbı bulunamadıysa), ikisi TEK bir Gemini isteğinde
-        // Türkçe kaynak metinlerinden çevrilir.
-        const toTranslate2: Record<string, string> = {};
-        if (!product.shortDescriptionEn && !data.shortDescriptionEn) {
-          const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
-          if (trExcerpt) toTranslate2.shortExcerpt = trExcerpt;
-        }
-        if (!product.fabricInfoEn && !data.fabricInfoEn) {
-          const trFabric =
-            extractFabricComposition(product.description) ?? extractFabricMaterialFallback(product.description) ?? product.fabricInfo;
-          if (trFabric) toTranslate2.fabric = trFabric;
-        }
-        if (Object.keys(toTranslate2).length > 0) {
-          try {
-            const translated2 = await translateFields(toTranslate2, 'English');
-            if (translated2.shortExcerpt) data.shortDescriptionEn = translated2.shortExcerpt;
-            if (translated2.fabric) data.fabricInfoEn = translated2.fabric;
-          } catch (err) {
-            logger.error(`[catalog/translate] ürün ${product.id} İngilizce kısa açıklama/kumaş: ${err instanceof Error ? err.message : String(err)}`);
-          }
-        }
 
         if (Object.keys(data).length > 0) {
           await prisma.product.update({ where: { id: product.id }, data });
@@ -279,21 +242,25 @@ const TRANSLATABLE_PRODUCT_SELECT = {
 } as const;
 
 // Bir kataloğa dahil edildiğinde İngilizce/Arapça çevrilmesini beklemek yerine — Ürün
-// Yönetimi ekranından tetiklenir, henüz o dile çevrilmemiş (nameEn/nameAr'ı boş) ürünlerden
-// küçük bir grubu (BULK_BATCH_SIZE) çevirip DB'ye yazar ve kalan sayıyı döndürür. Web
-// tarafı bu uç noktayı `remaining` sıfıra inene kadar art arda çağırır (bkz.
+// Yönetimi ekranından tetiklenir, henüz o dile çevrilmemiş (nameEn/nameAr'ı boş) AKTİF
+// ürünlerden küçük bir grubu (BULK_BATCH_SIZE) çevirip DB'ye yazar ve kalan sayıyı döndürür.
+// Web tarafı bu uç noktayı `remaining` sıfıra inene kadar art arda çağırır (bkz.
 // products/translate-batch route) — bu sayede Gemini'nin dakikalık kotasını aşmadan TÜM
 // katalog parça parça, sayfa açıkken izlenebilir şekilde çevrilebilir. Zaten çevrilmiş
 // ürünler where koşuluyla hiç seçilmiyor, bu yüzden tekrar çağırmak güvenli/idempotent.
+// isActive T-Soft'un kendi "Aktif" bayrağından senkronize edilir (bkz. sync.service.ts
+// upsertProduct) — pasif/satılmayan ürünlere boşuna çeviri kotası harcanmasın diye
+// (kullanıcı kararı: "7350 ürüne gerek yok, aktif ürünlerin çevirisini yap").
 const BULK_BATCH_SIZE = 12;
 
 export async function translateMissingProductsBatch(
   language: 'EN' | 'AR'
 ): Promise<{ processed: number; remaining: number }> {
   const whereMissing = language === 'EN' ? { nameEn: null } : { nameAr: null };
+  const where = { ...whereMissing, archivedAt: null, isActive: true };
 
   const products = await prisma.product.findMany({
-    where: { ...whereMissing, archivedAt: null },
+    where,
     take: BULK_BATCH_SIZE,
     orderBy: { createdAt: 'asc' },
     select: TRANSLATABLE_PRODUCT_SELECT,
@@ -305,7 +272,7 @@ export async function translateMissingProductsBatch(
     else await fillMissingArabicContent(items);
   }
 
-  const remaining = await prisma.product.count({ where: { ...whereMissing, archivedAt: null } });
+  const remaining = await prisma.product.count({ where });
   return { processed: products.length, remaining };
 }
 

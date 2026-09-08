@@ -406,6 +406,9 @@ export class TSoftClient implements TSoftClientApi {
       fabricInfo: detailsText ? this.extractFabricInfo(detailsText) : undefined,
       colorLabel,
       relatedProductIds,
+      // T-Soft "IsActive" alanı string "true"/"false" olarak geliyor (bkz. mapProduct debug
+      // log'u) — belirtilmemişse (eksi ihtimal) varsayılan olarak aktif sayılır.
+      isActive: String(p.IsActive ?? p.isActive ?? 'true').toLowerCase() === 'true',
     };
   }
 
