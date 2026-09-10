@@ -251,7 +251,13 @@ const TRANSLATABLE_PRODUCT_SELECT = {
 // isActive T-Soft'un kendi "Aktif" bayrağından senkronize edilir (bkz. sync.service.ts
 // upsertProduct) — pasif/satılmayan ürünlere boşuna çeviri kotası harcanmasın diye
 // (kullanıcı kararı: "7350 ürüne gerek yok, aktif ürünlerin çevirisini yap").
-const BULK_BATCH_SIZE = 12;
+//
+// Boyut, web tarafındaki anket aralığıyla (bkz. sync/page.tsx BULK_TRANSLATE_POLL_DELAY_MS)
+// birlikte Gemini'nin ücretsiz katman dakikalık limitine (lite modelde 15/dk) göre
+// ayarlanmalı — canlıda gözlemlendi: 12'lik grup + 5sn'lik anket, aynı 12 ürünün limite
+// takılıp asla ilerleyememesine yol açtı (aynı `orderBy: createdAt asc` her seferinde
+// aynı başarısız grubu seçiyordu). 5 ürün / 25sn ≈ dakikada 12 istek, güvenli marj bırakır.
+const BULK_BATCH_SIZE = 5;
 
 export async function translateMissingProductsBatch(
   language: 'EN' | 'AR'
