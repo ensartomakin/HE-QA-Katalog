@@ -314,21 +314,45 @@ export async function runFullSync(): Promise<{ syncRunId: string; upserted: numb
   try {
     const client = await getTsoftClient();
     const categoryIdMap = await syncCategories();
-    const categories = Array.from(categoryIdMap.keys());
 
     const seenTsoftIds = new Set<string>();
     let upserted = 0;
 
-    for (const tsoftCategoryId of categories) {
-      const products = await client.getCategoryProductsFull(tsoftCategoryId);
-      const internalCategoryId = categoryIdMap.get(tsoftCategoryId);
-      if (!internalCategoryId) continue;
+    // T-Soft hesabında kategori kategori gezmek yerine (217 kategori, çoğu ürün birden
+    // fazla kategoride yer aldığından aynı ürün defalarca çekilip yazılıyordu — 7400
+    // ürün için 80binin üzerinde upsert, bkz. PR tartışması) "Tüm Kategoriler" kategorisi
+    // TEK bir sorguda kataloğun tamamını (doğrulandı: 7417 ürün, ~22sn) veriyor. Her
+    // ürünün kendi gerçek kategorisi zaten mapProduct'ta p.categoryId (T-Soft'un
+    // DefaultCategoryId'si) olarak geliyor — hangi kategoriden sorguladığımızdan
+    // bağımsız — bu yüzden tek geçişte de doğru kategoriye yazılabiliyor.
+    const allCategoriesEntry = (await client.getCategories()).find((c) => c.name.trim() === 'Tüm Kategoriler');
 
+    if (allCategoriesEntry) {
+      logger.info(`[runFullSync] "Tüm Kategoriler" (${allCategoriesEntry.categoryId}) üzerinden tek geçiş`);
+      const products = await client.getCategoryProductsFull(allCategoriesEntry.categoryId);
       for (const p of products) {
+        const internalCategoryId = categoryIdMap.get(p.categoryId) ?? categoryIdMap.get(allCategoriesEntry.categoryId);
+        if (!internalCategoryId) continue;
         const id = await upsertProduct(p, internalCategoryId);
         if (!id) continue;
         seenTsoftIds.add(id);
         upserted++;
+      }
+    } else {
+      // Yedek yol — "Tüm Kategoriler" bulunamazsa (hesap değişirse/kategori silinirse)
+      // eski kategori-kategori tarama davranışına düş, en azından doğruluk korunsun.
+      logger.warn('[runFullSync] "Tüm Kategoriler" kategorisi bulunamadı, kategori kategori taramaya düşülüyor');
+      for (const tsoftCategoryId of categoryIdMap.keys()) {
+        const products = await client.getCategoryProductsFull(tsoftCategoryId);
+        const internalCategoryId = categoryIdMap.get(tsoftCategoryId);
+        if (!internalCategoryId) continue;
+
+        for (const p of products) {
+          const id = await upsertProduct(p, internalCategoryId);
+          if (!id) continue;
+          seenTsoftIds.add(id);
+          upserted++;
+        }
       }
     }
 

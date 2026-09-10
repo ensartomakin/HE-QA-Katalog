@@ -18,7 +18,11 @@ interface BulkTranslateStatus {
   done: boolean;
 }
 
-const BULK_TRANSLATE_POLL_DELAY_MS = 5000;
+// worker'daki BULK_BATCH_SIZE (5) ile birlikte Gemini'nin ücretsiz katman dakikalık
+// limitine (lite modelde 15/dk) göre ayarlandı — 5sn'lik eski aralık aynı grubun sürekli
+// kotaya takılıp hiç ilerleyememesine yol açıyordu (bkz. catalog.service.ts yorumu).
+// 5 ürün / 25sn ≈ dakikada 12 istek, güvenli marj bırakır.
+const BULK_TRANSLATE_POLL_DELAY_MS = 25000;
 
 // Ürün başına Gemini kotasına (bkz. worker translation.service.ts) tek istekte çarpmamak için
 // her turda küçük bir grup (worker'daki BULK_BATCH_SIZE) çevrilip `remaining` sıfıra inene
