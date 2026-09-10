@@ -255,9 +255,28 @@ const TRANSLATABLE_PRODUCT_SELECT = {
 // Boyut, web tarafındaki anket aralığıyla (bkz. sync/page.tsx BULK_TRANSLATE_POLL_DELAY_MS)
 // birlikte Gemini'nin ücretsiz katman dakikalık limitine (lite modelde 15/dk) göre
 // ayarlanmalı — canlıda gözlemlendi: 12'lik grup + 5sn'lik anket, aynı 12 ürünün limite
-// takılıp asla ilerleyememesine yol açtı (aynı `orderBy: createdAt asc` her seferinde
-// aynı başarısız grubu seçiyordu). 5 ürün / 25sn ≈ dakikada 12 istek, güvenli marj bırakır.
+// takılıp asla ilerleyememesine yol açtı. 5 ürün / 25sn ≈ dakikada 12 istek, güvenli marj.
+//
+// Sabit `orderBy: createdAt asc` ile sadece "en eski"yi seçmek ayrı bir soruna yol açtı:
+// kaynağında gerçekten çevirisi hiç olmayan (bkz. fillMissingEnglishContent — T-Soft'ta
+// "Dil" sekmesi boşsa hiçbir şey yazılmıyor, kasıtlı) birkaç ürün (canlıda görüldü: "Test
+// Ürünü", "deneme", bağış/afet yardımı kampanya ürünleri gibi normalde çok dilli içeriği
+// olmayan kayıtlar) HER turda yeniden seçilip arkadaki, gerçekten çevrilebilecek yüzlerce
+// ürünün sırasının hiç gelmemesine yol açıyordu (canlıda doğrulandı: EN 95'te, AR 1470'te
+// saatlerce sabit kaldı). Bunun yerine daha geniş bir havuzdan (BULK_POOL_SIZE) her
+// seferinde RASTGELE bir grup seçiliyor — kalıcı olarak başarısız olan birkaç kayıt
+// havuzun küçük bir kısmında kalır, geri kalanı zamanla sırayla denenip tamamlanır.
 const BULK_BATCH_SIZE = 5;
+const BULK_POOL_SIZE = 100;
+
+function sampleRandom<T>(arr: T[], count: number): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
 
 export async function translateMissingProductsBatch(
   language: 'EN' | 'AR'
@@ -265,12 +284,13 @@ export async function translateMissingProductsBatch(
   const whereMissing = language === 'EN' ? { nameEn: null } : { nameAr: null };
   const where = { ...whereMissing, archivedAt: null, isActive: true };
 
-  const products = await prisma.product.findMany({
+  const pool = await prisma.product.findMany({
     where,
-    take: BULK_BATCH_SIZE,
+    take: BULK_POOL_SIZE,
     orderBy: { createdAt: 'asc' },
     select: TRANSLATABLE_PRODUCT_SELECT,
   });
+  const products = sampleRandom(pool, BULK_BATCH_SIZE);
 
   if (products.length > 0) {
     const items = products.map((product) => ({ product }));
