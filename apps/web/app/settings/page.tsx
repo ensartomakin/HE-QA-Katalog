@@ -7,8 +7,45 @@ import { TopNav } from '@/components/TopNav';
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body?.error ?? `İstek başarısız: ${url}`);
+  if (!res.ok) {
+    const message = typeof body?.error === 'string' ? body.error : body?.error ? JSON.stringify(body.error) : `İstek başarısız: ${url}`;
+    throw new Error(message);
+  }
   return body;
+}
+
+// Marka logosu footer'da küçük gösterildiği için (bkz. editoryal.css .ed-brand-logo, en fazla
+// 55mm) tasarım aracından dışa aktarılan büyük çözünürlüklü dosyalar (ör. 3000px'lik bir PNG)
+// hiç küçültülmeden base64'e çevrilince worker'daki boyut sınırını (settings.routes.ts
+// brandLogoUrl, ~1.5MB) aşabiliyor. PNG olarak dışa aktarılıyor (JPEG'in aksine) çünkü
+// logolarda saydamlık (transparency) olabiliyor.
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Görsel okunamadı'));
+    img.src = dataUrl;
+  });
+}
+
+function resizeImageDataUrl(img: HTMLImageElement, maxDimension: number): string {
+  const scale = Math.min(1, maxDimension / Math.max(img.naturalWidth, img.naturalHeight));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.naturalWidth * scale);
+  canvas.height = Math.round(img.naturalHeight * scale);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Görsel işlenemedi');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/png');
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Görsel okunamadı'));
+    reader.readAsDataURL(file);
+  });
 }
 
 interface Settings {
@@ -143,26 +180,24 @@ export default function SettingsPage() {
   }
 
   const MIN_LOGO_DIMENSION = 40; // px — bundan küçük görseller (ör. 1x1 bozuk dosya) kataloglarda görünmez bir "." lekesi bırakıyordu
+  const MAX_LOGO_DIMENSION = 800; // px — footer'da en fazla 55mm gösterildiğinden (bkz. editoryal.css) fazlası boşuna dosya boyutu
 
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setLogoMessage(null);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const img = new window.Image();
-      img.onload = () => {
-        if (img.naturalWidth < MIN_LOGO_DIMENSION || img.naturalHeight < MIN_LOGO_DIMENSION) {
-          setLogoMessage(`Görsel çok küçük (${img.naturalWidth}×${img.naturalHeight}px) — en az ${MIN_LOGO_DIMENSION}×${MIN_LOGO_DIMENSION}px olmalı.`);
-          e.target.value = '';
-          return;
-        }
-        setLogoPreview(dataUrl);
-      };
-      img.src = dataUrl;
-    };
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const img = await loadImage(dataUrl);
+      if (img.naturalWidth < MIN_LOGO_DIMENSION || img.naturalHeight < MIN_LOGO_DIMENSION) {
+        setLogoMessage(`Görsel çok küçük (${img.naturalWidth}×${img.naturalHeight}px) — en az ${MIN_LOGO_DIMENSION}×${MIN_LOGO_DIMENSION}px olmalı.`);
+        e.target.value = '';
+        return;
+      }
+      setLogoPreview(resizeImageDataUrl(img, MAX_LOGO_DIMENSION));
+    } catch (err) {
+      setLogoMessage(err instanceof Error ? err.message : 'Görsel işlenemedi');
+    }
   }
 
   return (

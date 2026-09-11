@@ -15,8 +15,42 @@ type FocalEditorTarget = { itemId: string; imageUrl: string; label: string };
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body?.error ?? `İstek başarısız: ${url}`);
+  if (!res.ok) {
+    const message = typeof body?.error === 'string' ? body.error : body?.error ? JSON.stringify(body.error) : `İstek başarısız: ${url}`;
+    throw new Error(message);
+  }
   return body;
+}
+
+// Kapak görseli olarak seçilen dosya (ör. telefon kamerası) birkaç MB'a çıkabiliyor —
+// base64'e çevrildiğinde worker'daki boyut sınırını (bkz. catalogs.routes.ts
+// updateCoverImageSchema) aşabiliyor. Kapak sayfası A4'ü dolduran tek bir görsel
+// olduğundan, uzun kenarı 1600px'e indirip JPEG olarak sıkıştırmak baskı kalitesini
+// gözle görülür şekilde etkilemeden dosyayı küçük tutuyor.
+function readImageAsCompressedDataUrl(file: File, maxDimension = 1600, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxDimension / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      URL.revokeObjectURL(objectUrl);
+      if (!ctx) {
+        reject(new Error('Görsel işlenemedi'));
+        return;
+      }
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Görsel okunamadı'));
+    };
+    img.src = objectUrl;
+  });
 }
 
 const STATUS_LABEL: Record<CatalogDetail['status'], string> = {
@@ -148,9 +182,9 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
     const file = e.target.files?.[0];
     if (!file) return;
     setCoverMessage(null);
-    const reader = new FileReader();
-    reader.onload = () => setCoverPreview(reader.result as string);
-    reader.readAsDataURL(file);
+    readImageAsCompressedDataUrl(file)
+      .then(setCoverPreview)
+      .catch((err) => setCoverMessage(err instanceof Error ? err.message : 'Görsel işlenemedi'));
   }
 
   return (
