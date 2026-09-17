@@ -183,11 +183,14 @@ const AR_COLOR_WORDS = new Set([
   'برتقالي', 'أحمر', 'خمري', 'عنابي', 'وردي', 'فوشيا', 'بنفسجي', 'أرجواني', 'بني', 'شوكولاتة',
   'بندقي', 'تان', 'جملي', 'موكا', 'بيج', 'بيز', 'كريمي', 'عاجي', 'منك', 'حجري', 'رملي', 'بيج فاتح',
   'لؤلؤي', 'مرجاني', 'ذهبي', 'فضي', 'نحاسي', 'برونزي', 'نيلي', 'دنيم', 'زمردي', 'يشمي', 'وردي فاتح',
-  'سالمون', 'صدئي', 'سماوي', 'كوبالت', 'مرجان', 'فيزون', 'داكن', 'زيتي',
-  // "لون"/"بلون" ("renk"/"renginde") — renk kelimesi kırpıldıktan sonra anlamsız kalan
-  // "... rengi/renginde" kalıntısı da temizlenmeli (örn. "... لون بيج" → sadece "بيج" değil
-  // "لون" da kırpılmalı, yoksa "... rengi" diye anlamsız bir kalıntı kalır).
-  'لون', 'بلون', 'بألوان',
+  'سالمون', 'صدئي', 'سماوي', 'كوبالت', 'مرجان', 'فيزون', 'داكن', 'زيتي', 'بورغندي', 'طيني',
+  // Gemini çevirisinde gözlemlenen alternatif yazım/varyant biçimleri (örn. "بني" yerine
+  // elif ile "بنى", "منك" yerine "منكل"/"منسك").
+  'بنى', 'منكل', 'منسك',
+  // "لون"/"بلون"/"لوني" ("renk"/"renginde"/"rengi") — renk kelimesi kırpıldıktan sonra
+  // anlamsız kalan "... rengi/renginde" kalıntısı da temizlenmeli (örn. "... لون بيج" →
+  // sadece "بيج" değil "لون" da kırpılmalı, yoksa "... rengi" diye anlamsız kalır).
+  'لون', 'بلون', 'بألوان', 'لوني',
   // ton belirteçleri
   'فاتح', 'غامق', 'ناعم', 'جليدي', 'ليلي', 'باستيل', 'عميق', 'زاهي', 'باهت',
 ]);
