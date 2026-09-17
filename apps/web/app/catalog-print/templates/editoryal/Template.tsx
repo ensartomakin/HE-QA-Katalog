@@ -6,6 +6,9 @@ import {
   extractDefiningSentenceEn,
   extractFabricCompositionEn,
   extractFabricMaterialFallbackEn,
+  stripColorFromName,
+  stripColorWordsEn,
+  stripColorWordsAr,
 } from '@he-qa/db';
 import type { CatalogDetail, CatalogItem, CatalogLanguage } from '@/lib/types';
 import type { CatalogPrintTemplateProps } from '@/lib/catalog-print-templates';
@@ -30,19 +33,6 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
 
 function formatPrice(value: number, currency: CatalogDetail['currency'], locale: string): string {
   return `${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
-}
-
-// T-Soft'taki ürün adları genelde model adı + rengin/desenin adıyla bitiyor (örn.
-// "RÜZGARLIK DETAYLI UZUN YÜZME TAKIMI AÇIK HAKİ" → model + "Açık Haki" rengi).
-// Sayfada sadece modele ait kısmın kalması için, ürünün kendi colorLabel'i adın
-// sonunda geçiyorsa (büyük/küçük harf farkı gözetmeden) kırpılıyor.
-function stripColorFromName(name: string, colorLabel: string | null): string {
-  const trimmedColor = colorLabel?.trim();
-  if (!trimmedColor) return name;
-  const lowerName = name.toLocaleLowerCase('tr');
-  const lowerColor = trimmedColor.toLocaleLowerCase('tr');
-  if (!lowerName.endsWith(lowerColor)) return name;
-  return name.slice(0, name.length - trimmedColor.length).trim();
 }
 
 // hexPreview boş bırakılan renk varyantları için son çare — rengin adı gerçek bir
@@ -360,9 +350,17 @@ function EdProductPage({
   // null kalabilir) — sayfa hiçbir zaman boş kalmaz. Arapça için T-Soft'ta karşılığı
   // olmadığından (yalnızca İngilizce "Dil" sekmesi var) kural tabanlı çıkarım yok —
   // shortDescriptionAr/fabricInfoAr zaten Türkçe kısa metnin doğrudan çevirisi.
-  const displayNameSource =
-    language === 'EN' ? item.product.nameEn || item.product.name : language === 'AR' ? item.product.nameAr || item.product.name : item.product.name;
-  const displayName = stripColorFromName(displayNameSource, item.product.colorLabel);
+  // nameEn/nameAr artık kaydedilirken zaten renk kelimesi kırpılmış olarak yazılıyor (bkz.
+  // catalog.service.ts fillMissingEnglishContent/fillMissingArabicContent) — buradaki
+  // stripColorWordsEn/Ar çağrıları eski (bu düzeltmeden önce) kaydedilmiş kayıtlar için bir
+  // güvenlik ağı. TR'ye (veya çeviri henüz yoksa TR'ye düşen EN/AR) her zaman colorLabel ile
+  // tam eşleşen stripColorFromName uygulanır.
+  const displayName =
+    language === 'EN' && item.product.nameEn
+      ? stripColorWordsEn(item.product.nameEn) ?? item.product.nameEn
+      : language === 'AR' && item.product.nameAr
+        ? stripColorWordsAr(item.product.nameAr) ?? item.product.nameAr
+        : stripColorFromName(item.product.name, item.product.colorLabel);
   const descriptionExcerpt =
     language === 'EN'
       ? item.product.shortDescriptionEn?.trim() || extractDefiningSentenceEn(item.product.descriptionEn) || trExcerpt

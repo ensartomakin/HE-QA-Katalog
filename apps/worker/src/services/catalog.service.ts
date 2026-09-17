@@ -7,6 +7,8 @@ import {
   extractDefiningSentenceEn,
   extractFabricCompositionEn,
   extractFabricMaterialFallbackEn,
+  stripColorFromName,
+  stripColorWordsEn,
 } from '@he-qa/db';
 import { prisma } from '../db/prisma';
 import { translateFields } from './translation.service';
@@ -68,6 +70,7 @@ type TranslatableProduct = {
   id: string;
   code: string;
   name: string;
+  colorLabel: string | null;
   description: string | null;
   descriptionEn: string | null;
   descriptionAr: string | null;
@@ -138,7 +141,12 @@ async function fillMissingEnglishContent(items: { product: TranslatableProduct }
           logger.error(`[catalog/translate] ürün ${product.id} T-Soft getProductLanguage: ${err instanceof Error ? err.message : String(err)}`);
         }
 
-        if (tsoftName && !product.nameEn) data.nameEn = tsoftName;
+        // T-Soft'un kendi İngilizce ürün adı da (insan çevirisi) sonunda rengi taşıyor
+        // (örn. "... LIGHT KHAKI") — Türkçe'de colorLabel ile tam eşleşen bir kırpma
+        // yapılabiliyor ama burada colorLabel Türkçe olduğundan İngilizce adla birebir
+        // eşleşmiyor; bilinen renk/ton kelimeleri listesine göre sondan kırpılıyor
+        // (bkz. catalog-text.ts stripColorWordsEn).
+        if (tsoftName && !product.nameEn) data.nameEn = stripColorWordsEn(tsoftName) ?? tsoftName;
         if (tsoftDescription && !product.descriptionEn) data.descriptionEn = tsoftDescription;
 
         // Kısa açıklama/kumaş, T-Soft'un kendi ShortDescription'ı yoksa İngilizce açıklamadan
@@ -189,7 +197,12 @@ async function fillMissingArabicContent(items: { product: TranslatableProduct }[
     await Promise.all(
       batch.map(async ({ product }) => {
         const toTranslate: Record<string, string> = {};
-        if (!product.nameAr && product.name) toTranslate.name = product.name;
+        // Türkçe addaki renk kelimesi (colorLabel ile tam eşleşen kısım) çeviriye gitmeden
+        // ÖNCE kırpılıyor — böylece Gemini renksiz bir metni çevirir ve nameAr baştan renk
+        // içermeden kaydedilir (İngilizce'nin aksine burada bilinen kelime listesine değil,
+        // Türkçe için zaten var olan tam eşleşmeye güvenilebiliyor).
+        const trNameForTranslation = stripColorFromName(product.name, product.colorLabel);
+        if (!product.nameAr && trNameForTranslation) toTranslate.name = trNameForTranslation;
         if (!product.descriptionAr && product.description) toTranslate.description = product.description;
         if (!product.shortDescriptionAr) {
           const trExcerpt = product.shortDescription?.trim() || extractDefiningSentence(product.description) || null;
@@ -228,6 +241,7 @@ const TRANSLATABLE_PRODUCT_SELECT = {
   id: true,
   code: true,
   name: true,
+  colorLabel: true,
   description: true,
   descriptionEn: true,
   descriptionAr: true,

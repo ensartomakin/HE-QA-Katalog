@@ -133,3 +133,101 @@ export function extractFabricMaterialFallbackEn(description: string | null): str
   }
   return best?.name ?? null;
 }
+
+// --- Ürün adından renk kelimesi kırpma ---
+// T-Soft'taki ürün adları genelde model adı + rengin/desenin adıyla bitiyor (örn.
+// "RÜZGARLIK DETAYLI UZUN YÜZME TAKIMI AÇIK HAKİ" → model + "Açık Haki" rengi). Sayfada
+// sadece modele ait kısmın kalması için, ürünün kendi colorLabel'i (T-Soft'un renk
+// varyantı alanı, Türkçe) adın sonunda geçiyorsa kırpılır. Tam metin eşleşmesi kullanır
+// (kelime listesine göre değil) çünkü colorLabel zaten o ürünün GERÇEK rengidir — bu
+// yüzden Türkçe için en güvenilir yöntem budur.
+export function stripColorFromName(name: string, colorLabel: string | null): string {
+  const trimmedColor = colorLabel?.trim();
+  if (!trimmedColor) return name;
+  const lowerName = name.toLocaleLowerCase('tr');
+  const lowerColor = trimmedColor.toLocaleLowerCase('tr');
+  if (!lowerName.endsWith(lowerColor)) return name;
+  return name.slice(0, name.length - trimmedColor.length).trim();
+}
+
+// İngilizce ürün adı T-Soft'un kendi "Dil" sekmesinden (insan çevirisi) geldiğinden bizim
+// colorLabel alanımızla (Türkçe) birebir eşleşmiyor — bu yüzden TR'deki gibi tam metin
+// eşleşmesi yerine bilinen renk/ton kelimelerinin listesine göre adın SONUNDAN geriye
+// doğru kırpma yapılır (bkz. sync.service.ts BASE_COLOR_HSL/COLOR_MODIFIERS — aynı renk
+// kümesinin İngilizce karşılıkları). "Light Khaki" gibi iki kelimelik adlar da desteklenir:
+// önce "Khaki" (renk) kırpılır, sonra kalan son kelime "Light" (ton belirteci) de kırpılır.
+const EN_COLOR_WORDS = new Set([
+  'black', 'white', 'grey', 'gray', 'anthracite', 'charcoal', 'navy', 'blue', 'turquoise', 'teal',
+  'green', 'khaki', 'olive', 'sage', 'eucalyptus', 'mustard', 'yellow', 'lemon', 'lime',
+  'orange', 'apricot', 'peach', 'red', 'burgundy', 'wine', 'maroon', 'pink', 'fuchsia', 'magenta',
+  'purple', 'lilac', 'lavender', 'mauve', 'plum', 'brown', 'chocolate', 'hazelnut', 'tan', 'camel',
+  'mocha', 'taupe', 'beige', 'ecru', 'cream', 'ivory', 'mink', 'stone', 'sand', 'nude', 'bone',
+  'pearl', 'coral', 'gold', 'silver', 'copper', 'bronze', 'indigo', 'denim', 'emerald', 'jade',
+  'rose', 'salmon', 'rust', 'azure', 'cobalt',
+  // Fashion katalog isimlerinde renk kelimesinden önce sık geçen bileşik ton/nitelik
+  // belirteçleri (örn. "Almond Green", "Old Rose", "Royal Blue", "Brick Red") — bunlar
+  // yalnız başlarına renk değil ama zaten renk kelimesi sıyrıldıktan sonra sonda kalan
+  // anlamsız kalıntıyı temizlemek için gerekli.
+  'almond', 'oil', 'moss', 'forest', 'brick', 'old', 'royal', 'ultra', 'warm', 'horizon',
+  'reseda', 'bordeaux',
+  // ton belirteçleri
+  'light', 'dark', 'soft', 'ice', 'icy', 'night', 'bitter', 'baby', 'pastel', 'deep', 'bright', 'pale', 'dusty',
+]);
+
+// nameAr Gemini ile TÜRKÇE'den çevrildiği için (bkz. catalog.service.ts fillMissingArabicContent)
+// asıl kalıcı çözüm çeviriye giden Türkçe metni önceden stripColorFromName ile temizlemek —
+// bu liste sadece daha önce (bu düzeltmeden önce) rengi dahil çevrilmiş, veritabanında
+// kayıtlı eski nameAr değerlerini temizlemek için bir güvenlik ağı olarak kullanılıyor.
+const AR_COLOR_WORDS = new Set([
+  'أسود', 'أبيض', 'رمادي', 'كحلي', 'أزرق', 'فيروزي', 'أخضر', 'كاكي', 'زيتوني', 'خردل', 'أصفر',
+  'برتقالي', 'أحمر', 'خمري', 'عنابي', 'وردي', 'فوشيا', 'بنفسجي', 'أرجواني', 'بني', 'شوكولاتة',
+  'بندقي', 'تان', 'جملي', 'موكا', 'بيج', 'بيز', 'كريمي', 'عاجي', 'منك', 'حجري', 'رملي', 'بيج فاتح',
+  'لؤلؤي', 'مرجاني', 'ذهبي', 'فضي', 'نحاسي', 'برونزي', 'نيلي', 'دنيم', 'زمردي', 'يشمي', 'وردي فاتح',
+  'سالمون', 'صدئي', 'سماوي', 'كوبالت', 'مرجان', 'فيزون', 'داكن', 'زيتي',
+  // "لون"/"بلون" ("renk"/"renginde") — renk kelimesi kırpıldıktan sonra anlamsız kalan
+  // "... rengi/renginde" kalıntısı da temizlenmeli (örn. "... لون بيج" → sadece "بيج" değil
+  // "لون" da kırpılmalı, yoksa "... rengi" diye anlamsız bir kalıntı kalır).
+  'لون', 'بلون', 'بألوان',
+  // ton belirteçleri
+  'فاتح', 'غامق', 'ناعم', 'جليدي', 'ليلي', 'باستيل', 'عميق', 'زاهي', 'باهت',
+]);
+
+function normalizeColorToken(word: string): string {
+  return word.replace(/[.,;:!?'"()]+$/g, '').toLocaleLowerCase();
+}
+
+// "Bordeaux-Dark" gibi tirele birleştirilmiş bileşik renk adlarını da yakalar — tirenin
+// her iki tarafı da (ayrı ayrı) bilinen bir renk/ton kelimesiyse tüm token bir bütün
+// olarak renk sayılır.
+function isColorToken(word: string, colorWords: Set<string>): boolean {
+  const normalized = normalizeColorToken(word);
+  if (colorWords.has(normalized)) return true;
+  if (normalized.includes('-')) {
+    const parts = normalized.split('-').filter(Boolean);
+    return parts.length > 0 && parts.every((p) => colorWords.has(p));
+  }
+  return false;
+}
+
+// Verilen kelime kümesindeki kelimeler adın sonundan kaldığı sürece tekrar tekrar kırpılır —
+// böylece hem "... Khaki" hem "... Light Khaki" gibi çok kelimeli renk/ton kombinasyonları
+// tek bir kelime listesiyle desteklenir.
+function stripTrailingColorWords(name: string, colorWords: Set<string>): string {
+  const words = name.trim().split(/\s+/);
+  while (words.length > 1 && isColorToken(words[words.length - 1], colorWords)) {
+    words.pop();
+  }
+  // Renk kelimesinden önce gelen "-", "," gibi ayraçlar da renkle birlikte anlamsızlaşır
+  // (örn. "... Hilal - Bej" → "Bej" kırpılınca sonda yalnız "-" kalmamalı).
+  return words.join(' ').replace(/[\s\-–—,،:;]+$/, '').trim();
+}
+
+export function stripColorWordsEn(name: string | null): string | null {
+  if (!name) return name;
+  return stripTrailingColorWords(name, EN_COLOR_WORDS);
+}
+
+export function stripColorWordsAr(name: string | null): string | null {
+  if (!name) return name;
+  return stripTrailingColorWords(name, AR_COLOR_WORDS);
+}
