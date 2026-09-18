@@ -20,6 +20,191 @@ import { getCatalogStrings, type CatalogStrings } from '@/lib/catalog-i18n';
 // bu noktayı görsel bazında değiştirebilir (bkz. CatalogItem.imageFocalPoints).
 const DEFAULT_FOCAL_POINT = { x: 0.5, y: 0.15 };
 
+// Katalog için özel bir kapak görseli yüklenmediyse (bkz. catalogs/[id] sayfası "Kapak
+// Görseli" alanı) bu editoryal marka görseli varsayılan olarak kullanılıyor.
+const DEFAULT_COVER_IMAGE_URL = '/catalog-print/editoryal/default-cover.jpg';
+
+// Kategori adını (ör. "Tunik / Gömlek", "T-Shirt", "Şal - Eşarp") karşılaştırmaya uygun
+// hale getirir — Türkçe karakterler ASCII karşılığına çevrilir, geri kalan her şey (boşluk,
+// "/", "-" vb.) atılır. sync.service.ts'teki slugify ile aynı harf dönüşümünü kullanır (bkz.
+// orada tsoftCategoryId'siz hali).
+function normalizeCategoryKey(name: string): string {
+  return name
+    .toLocaleLowerCase('tr')
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// Ürünün kategorisi değiştiğinde, o kategorinin ürün sayfalarından önce eklenen tam sayfa
+// "kategori kapağı" (bkz. public/catalog-print/editoryal/category-covers) — kategori adı
+// zaten görselin içine gömülü olarak tasarlanmış, üstüne ayrıca metin basılmıyor.
+//
+// T-Soft'taki gerçek kategori ağacı (bkz. /api/products/categories) tek bir "Kaban" gibi
+// sade bir isimden ibaret değil — aynı giysi türü onlarca alt/eş anlamlı kategoriye
+// dağılmış durumda (ör. "Kaban Tümü", "Kaşe Kabanlar", "Kruvaze Kabanlar" hepsi kaban).
+// Bu yüzden eşleme tek bir normalize edilmiş isim yerine, her kapak görseli için gerçek
+// veride görülen kategori adlarının tam bir listesiyle yapılıyor (aşağıdaki liste canlı
+// veritabanındaki 239 kategori taranarak çıkarıldı). Bazı sınıflandırmalar (ör. "Kapitone
+// Montlar" → kaban, "Triko Elbise" → elbise, "Gömlek Elbiseler" → elbise) birebir isim
+// eşleşmesi değil, en yakın temaya göre yapılan bir tercih — yeni/farklı bir kategori
+// eklenirse veya bu eşleştirmelerden biri yanlış görünüyorsa buraya elle eklenip/taşınabilir.
+const CATEGORY_COVER_GROUPS: { image: string; categoryNames: string[] }[] = [
+  {
+    image: 'pantolon.jpg',
+    categoryNames: [
+      'Pantolon',
+      'Pantolon Tümü',
+      'Ballon Pants',
+      'Havuç Kesim Pantolanlar',
+      'Keten Pantolonlar',
+      'Palazzo Pantolon',
+      'Şalvar',
+      'Eşofman Altı',
+      'Jean',
+      'Jean Tümü',
+      'Mom Comfort Jean',
+      'Straight Fit Jean',
+      'Wide Leg Jeanler',
+    ],
+  },
+  {
+    image: 'trenckot.jpg',
+    categoryNames: ['Trençkot', 'Pardösü', 'Yağmurluk'],
+  },
+  {
+    image: 'tunikgomlek.jpg',
+    categoryNames: ['Tunik-Gömlek', 'Tunik-Gömlek Tümü', 'Uzun Tunik-Gömlek', 'Gömlek', 'Poplin Gömlek'],
+  },
+  {
+    image: 'salesarp.jpg',
+    categoryNames: [
+      'Şal - Eşarp',
+      'Şal - Eşarp Tümü',
+      'Eşarp',
+      'Desenli Şal',
+      'Desenli Eşarp',
+      'Desenli Dubline Soft Eşarp',
+      'Desenli Twill Eşarp',
+      'Soft Kraş Eşarp',
+      'Soft Kraş Şal',
+      'Likralı Soft Eşarp',
+      'Likralı Soft Şal',
+      'Aria Ekose Şal',
+      'Aural Desenli Şal',
+      'Frame Bloom Şal',
+      'Jakarlı Şal',
+      'Janjan Pearl Şal',
+      'Kazayağı Desen Eşarp',
+      'Kraş Şal',
+      'Kraşlı Bambu Şal',
+      'Lune Ekose Şal',
+      'Natural Şal',
+      'Pamuk Şal',
+      'Pamuklu Desenli Şallar',
+      'Penye Şal',
+      'Pera Ekose Şal',
+      'Point Şal',
+      'Riva Ekose Şal',
+      'Viskon Desenli Şallar',
+      'Vintage Loom Şal',
+      'Düz Renk Şal',
+      'Dream Şal',
+      'Yüzme Şalı',
+      'Fular',
+      'Boyunluk',
+      'Scarf Styling',
+      'Scarf Trend',
+    ],
+  },
+  {
+    image: 'abayaferace.jpg',
+    categoryNames: ['Abaya / Ferace', 'Urban Abaya Ferace Koleksiyonu'],
+  },
+  { image: 'abiye.jpg', categoryNames: ['Abiye'] },
+  { image: 'atki.jpg', categoryNames: ['Atkı'] },
+  {
+    image: 'canta.jpg',
+    categoryNames: ['Çanta', 'Çanta Tümü', 'Hasır Çanta', 'Tote Çanta'],
+  },
+  {
+    image: 'ceket.jpg',
+    categoryNames: [
+      'Ceket',
+      'Ceket Tümü',
+      'Blazer Ceketler',
+      'Bomber Ceketler',
+      'Deri Ceketler',
+      'Keten Ceketler',
+      'Kapitone Ceket',
+      'Modal Ceket',
+      'Scuba Ceket',
+      'Süet Ceketler',
+    ],
+  },
+  {
+    image: 'corap.jpg',
+    categoryNames: ['Çorap', 'Çorap Tümü', 'Soket Çorap', 'Dizaltı Çorap', 'Baklava Desenli Çoraplar'],
+  },
+  {
+    image: 'elbise.jpg',
+    categoryNames: [
+      'Elbise',
+      'Elbise Tümü',
+      'Brode Elbiseler',
+      'Denim Elbiseler',
+      'Ekose Elbiseler',
+      'Gömlek Elbiseler',
+      'Keten Elbise',
+      'Müslin Elbiseler',
+      'Triko Elbise',
+    ],
+  },
+  { image: 'eldiven.jpg', categoryNames: ['Eldiven'] },
+  {
+    image: 'etek.jpg',
+    categoryNames: [
+      'Etek',
+      'Etek Tümü',
+      'Bohem Etekler',
+      'Ekose Etekler',
+      'Maxi Skirt',
+      'Long Skirt',
+      'Müslin/Vual Etekler',
+      'Pileli Etekler',
+      'Saten Etekler',
+    ],
+  },
+  {
+    image: 'kaban.jpg',
+    categoryNames: ['Kaban', 'Kaban Tümü', 'Kaşe Kabanlar', 'Kruvaze Kabanlar', 'Kapitone Montlar', 'Kap'],
+  },
+  { image: 'tshirt.jpg', categoryNames: ['T-shirt'] },
+  { image: 'takim.jpg', categoryNames: ['Takım', 'Spor Takım'] },
+  {
+    image: 'tesetturmayo.jpg',
+    categoryNames: ['Tesettür Mayo', 'Modest NXT Swimwear Koleksiyonu', 'Mayo Pantolon'],
+  },
+  {
+    image: 'tesetturmayoaksesuarlari.jpg',
+    categoryNames: ['Pareo', 'Yüzücü Bonesi', 'Yüzücü Başlıkları'],
+  },
+  {
+    image: 'triko.jpg',
+    categoryNames: ['Triko', 'Triko Tümü', 'Triko Takım', 'Kazak', 'Süveter', 'Hırka'],
+  },
+];
+
+const CATEGORY_COVER_IMAGE: Record<string, string> = Object.fromEntries(
+  CATEGORY_COVER_GROUPS.flatMap(({ image, categoryNames }) =>
+    categoryNames.map((name) => [normalizeCategoryKey(name), `/catalog-print/editoryal/category-covers/${image}`])
+  )
+);
+
 function focalPointStyle(item: CatalogItem, imageUrl: string): { objectPosition: string } {
   const focal = item.imageFocalPoints?.[imageUrl] ?? DEFAULT_FOCAL_POINT;
   return { objectPosition: `${focal.x * 100}% ${focal.y * 100}%` };
@@ -435,6 +620,18 @@ function EdProductPage({
   );
 }
 
+// Kapak sayfasıyla aynı mantık: tasarımın tamamı görselin içinde olduğundan üstüne
+// künye/sayfa numarası basılmaz, ama fiziksel bir sayfa olarak numaralandırmayı kaydırır
+// (bkz. EditoryalTemplate'teki pageIndex sayacı).
+function EdCategoryDividerPage({ imageUrl }: { imageUrl: string }) {
+  return (
+    <div className="pdf-page ed-cover-page">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={imageUrl} alt="" className="ed-cover-image" />
+    </div>
+  );
+}
+
 function EdAboutPage({
   brandLogoUrl,
   pageNumber,
@@ -483,44 +680,79 @@ function EdAboutPage({
   );
 }
 
+type EditoryalPage =
+  | { type: 'divider'; key: string; imageUrl: string }
+  | { type: 'product'; key: string; item: CatalogItem; chunk: MediaItem[] };
+
+// Sıradaki ürünün kategorisi bir öncekinden farklıysa (bkz. normalizeCategoryKey) ve o
+// kategori için bir kapak tasarımı varsa (bkz. CATEGORY_COVER_IMAGE), o ürünün sayfalarından
+// hemen önce bir bölüm kapağı eklenir. Aynı kategoriden ürünler ardışık değilse (kullanıcı
+// sırayı elle karıştırdıysa) kapak her ardışık bloğun başında tekrar görünür.
+function buildPages(items: CatalogItem[]): EditoryalPage[] {
+  const pages: EditoryalPage[] = [];
+  let lastCategoryKey: string | null = null;
+
+  for (const item of items) {
+    const categoryKey = normalizeCategoryKey(item.product.category.name);
+    if (categoryKey !== lastCategoryKey) {
+      const dividerImageUrl = CATEGORY_COVER_IMAGE[categoryKey];
+      if (dividerImageUrl) {
+        pages.push({ type: 'divider', key: `divider-${item.id}`, imageUrl: dividerImageUrl });
+      }
+      lastCategoryKey = categoryKey;
+    }
+
+    chunkMediaItems(buildMediaItems(item)).forEach((chunk, chunkIndex) => {
+      pages.push({ type: 'product', key: `${item.id}-${chunkIndex}`, item, chunk });
+    });
+  }
+
+  return pages;
+}
+
 export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTemplateProps) {
   // Bir ürünün görsel sayısı sayfa başına düşen üst sınırı (8) aşarsa birden fazla sayfaya
-  // bölünür (bkz. MAX_IMAGES_PER_PAGE) — bu yüzden sayfa sayısı artık catalog.items.length
-  // ile birebir değil, toplam üretilen "ürün sayfası" sayısıyla belirleniyor.
-  const productPages = catalog.items.flatMap((item) =>
-    chunkMediaItems(buildMediaItems(item)).map((chunk, chunkIndex) => ({
-      key: `${item.id}-${chunkIndex}`,
-      item,
-      chunk,
-    }))
-  );
-  const totalPages = productPages.length + 2; // kapak + ürün sayfaları + hakkımızda/iletişim
+  // bölünür (bkz. MAX_IMAGES_PER_PAGE), kategori değişimlerinde de bir bölüm kapağı araya
+  // girer (bkz. buildPages) — bu yüzden sayfa sayısı artık catalog.items.length ile birebir
+  // değil, toplam üretilen fiziksel sayfa sayısıyla belirleniyor.
+  const pages = buildPages(catalog.items);
+  const totalPages = pages.length + 2; // kapak + (bölüm kapağı + ürün) sayfaları + hakkımızda/iletişim
   const defaultHeaderTitle = catalog.coverTitle || catalog.name;
   const strings = getCatalogStrings(catalog.language);
+
+  // Kapak ve bölüm kapağı sayfaları (görsel zaten tasarımın tamamını içerdiğinden) kendi
+  // üstlerinde bir sayfa numarası göstermez, ama fiziksel sırada birer sayfa olarak sayılır
+  // — bu yüzden ürün sayfalarının numarası, kendinden önceki kapak/bölüm sayfası sayısına
+  // göre kayar (kapak zaten "1" işgal ediyor, bkz. eski sabit `index + 2`).
+  let pageCursor = 1;
 
   return (
     <div className="catalog-print editoryal" lang={strings.htmlLang} dir={strings.direction}>
       <div className="pdf-page ed-cover-page">
-        {catalog.coverImageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={catalog.coverImageUrl} alt="" className="ed-cover-image" />
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={catalog.coverImageUrl || DEFAULT_COVER_IMAGE_URL} alt="" className="ed-cover-image" />
       </div>
 
-      {productPages.map((pp, index) => (
-        <EdProductPage
-          key={pp.key}
-          item={pp.item}
-          mediaChunk={pp.chunk}
-          currency={catalog.currency}
-          discountPct={catalog.discountPct}
-          brandLogoUrl={settings.brandLogoUrl}
-          defaultHeaderTitle={defaultHeaderTitle}
-          pageNumber={index + 2}
-          language={catalog.language}
-          strings={strings}
-        />
-      ))}
+      {pages.map((page) => {
+        pageCursor += 1;
+        if (page.type === 'divider') {
+          return <EdCategoryDividerPage key={page.key} imageUrl={page.imageUrl} />;
+        }
+        return (
+          <EdProductPage
+            key={page.key}
+            item={page.item}
+            mediaChunk={page.chunk}
+            currency={catalog.currency}
+            discountPct={catalog.discountPct}
+            brandLogoUrl={settings.brandLogoUrl}
+            defaultHeaderTitle={defaultHeaderTitle}
+            pageNumber={pageCursor}
+            language={catalog.language}
+            strings={strings}
+          />
+        );
+      })}
 
       <EdAboutPage brandLogoUrl={settings.brandLogoUrl} pageNumber={totalPages} strings={strings} />
     </div>
