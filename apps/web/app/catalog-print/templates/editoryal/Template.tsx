@@ -199,11 +199,46 @@ const CATEGORY_COVER_GROUPS: { image: string; categoryNames: string[] }[] = [
   },
 ];
 
-const CATEGORY_COVER_IMAGE: Record<string, string> = Object.fromEntries(
-  CATEGORY_COVER_GROUPS.flatMap(({ image, categoryNames }) =>
-    categoryNames.map((name) => [normalizeCategoryKey(name), `/catalog-print/editoryal/category-covers/${image}`])
-  )
+// Dosya adı aynı (ör. "kaban.jpg"), yalnızca klasör dile göre değişiyor — Türkçe kapaklar
+// public/catalog-print/editoryal/category-covers, İngilizce çevirileri ise aynı isimlerle
+// .../category-covers-en altında duruyor. İngilizce kataloglarda İngilizce tasarım varsa o
+// kullanılır; yoksa (ör. ileride yeni bir kategori eklenip henüz İngilizce tasarımı
+// hazırlanmadıysa) Türkçe kapağa düşülür.
+const CATEGORY_COVER_IMAGE_FILE: Record<string, string> = Object.fromEntries(
+  CATEGORY_COVER_GROUPS.flatMap(({ image, categoryNames }) => categoryNames.map((name) => [normalizeCategoryKey(name), image]))
 );
+
+// public/catalog-print/editoryal/category-covers-en altında gerçekten mevcut olan dosyalar —
+// ileride Türkçe tarafa yeni bir kategori eklenip henüz İngilizce tasarımı hazırlanmadıysa
+// buradan düşülüp Türkçe kapağın gösterilmesi için (bkz. resolveCategoryCoverImageUrl).
+const CATEGORY_COVER_EN_FILES = new Set([
+  'abayaferace.jpg',
+  'canta.jpg',
+  'kaban.jpg',
+  'elbise.jpg',
+  'abiye.jpg',
+  'eldiven.jpg',
+  'ceket.jpg',
+  'triko.jpg',
+  'tesetturmayoaksesuarlari.jpg',
+  'tesetturmayo.jpg',
+  'pantolon.jpg',
+  'atki.jpg',
+  'salesarp.jpg',
+  'etek.jpg',
+  'corap.jpg',
+  'takim.jpg',
+  'tshirt.jpg',
+  'trenckot.jpg',
+  'tunikgomlek.jpg',
+]);
+
+function resolveCategoryCoverImageUrl(categoryKey: string, language: CatalogLanguage): string | null {
+  const file = CATEGORY_COVER_IMAGE_FILE[categoryKey];
+  if (!file) return null;
+  const dir = language === 'EN' && CATEGORY_COVER_EN_FILES.has(file) ? 'category-covers-en' : 'category-covers';
+  return `/catalog-print/editoryal/${dir}/${file}`;
+}
 
 // T-Soft'ta ürünün kendi kategorisi (Product.categoryId) yanlış/eksik atanmış olabiliyor —
 // ör. "Spor Kesim Deri Ceket" T-Soft'ta "Trençkot" kategorisine de ekli ama ana kategorisi
@@ -702,17 +737,18 @@ type EditoryalPage =
   | { type: 'product'; key: string; item: CatalogItem; chunk: MediaItem[] };
 
 // Sıradaki ürünün kategorisi bir öncekinden farklıysa (bkz. normalizeCategoryKey) ve o
-// kategori için bir kapak tasarımı varsa (bkz. CATEGORY_COVER_IMAGE), o ürünün sayfalarından
-// hemen önce bir bölüm kapağı eklenir. Aynı kategoriden ürünler ardışık değilse (kullanıcı
-// sırayı elle karıştırdıysa) kapak her ardışık bloğun başında tekrar görünür.
-function buildPages(items: CatalogItem[]): EditoryalPage[] {
+// kategori için bir kapak tasarımı varsa (bkz. resolveCategoryCoverImageUrl), o ürünün
+// sayfalarından hemen önce bir bölüm kapağı eklenir. Aynı kategoriden ürünler ardışık
+// değilse (kullanıcı sırayı elle karıştırdıysa) kapak her ardışık bloğun başında tekrar
+// görünür.
+function buildPages(items: CatalogItem[], language: CatalogLanguage): EditoryalPage[] {
   const pages: EditoryalPage[] = [];
   let lastCategoryKey: string | null = null;
 
   for (const item of items) {
     const categoryKey = resolveCategoryKey(item);
     if (categoryKey !== lastCategoryKey) {
-      const dividerImageUrl = CATEGORY_COVER_IMAGE[categoryKey];
+      const dividerImageUrl = resolveCategoryCoverImageUrl(categoryKey, language);
       if (dividerImageUrl) {
         pages.push({ type: 'divider', key: `divider-${item.id}`, imageUrl: dividerImageUrl });
       }
@@ -732,7 +768,7 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
   // bölünür (bkz. MAX_IMAGES_PER_PAGE), kategori değişimlerinde de bir bölüm kapağı araya
   // girer (bkz. buildPages) — bu yüzden sayfa sayısı artık catalog.items.length ile birebir
   // değil, toplam üretilen fiziksel sayfa sayısıyla belirleniyor.
-  const pages = buildPages(catalog.items);
+  const pages = buildPages(catalog.items, catalog.language);
   const totalPages = pages.length + 2; // kapak + (bölüm kapağı + ürün) sayfaları + hakkımızda/iletişim
   const defaultHeaderTitle = catalog.coverTitle || catalog.name;
   const strings = getCatalogStrings(catalog.language);
