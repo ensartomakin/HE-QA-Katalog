@@ -30,6 +30,13 @@ const lastReauthAt = new Map<string, number>();
 // Kategori ürün listesi önbelleği — `${cacheKey}::cat::${categoryId}` → { data, expiresAt }
 const categoryProductsCache = new Map<string, { data: TSoftProduct[]; expiresAt: number }>();
 
+// Satış performansı önbelleği — `${cacheKey}::sales::${days}` → { data, expiresAt }. Ürün Seçim
+// Paneli'nde "Performans" sıralaması artık DB'deki elle senkronlanmış salesScore yerine bu
+// önbellek üzerinden anlık hesaplanıyor (bkz. products.routes.ts) — kısa TTL, kategori
+// değiştirildikçe her seferinde tüm sipariş geçmişini yeniden taramadan "anlık" hissettirir.
+const salesReportCache = new Map<string, { data: TSoftSalesData[]; expiresAt: number }>();
+const SALES_CACHE_TTL = 3 * 60 * 1000; // 3 dakika
+
 async function withRetry<T>(fn: () => Promise<T>, attempt = 1): Promise<T> {
   try {
     return await fn();
@@ -416,7 +423,13 @@ export class TSoftClient implements TSoftClientApi {
    *  not allowed!" hatası alınmıştı); bu yüzden order/get siparişlerinden ürün bazlı adet/ciro
    *  toplanarak satış performansı hesaplanıyor. */
   async getSalesReport(_productCodes: string[], days: number): Promise<TSoftSalesData[]> {
-    return this.getSalesViaOrders(days);
+    const key = `${this.cacheKey}::sales::${days}`;
+    const cached = salesReportCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+    const data = await this.getSalesViaOrders(days);
+    salesReportCache.set(key, { data, expiresAt: Date.now() + SALES_CACHE_TTL });
+    return data;
   }
 
   private async getSalesViaOrders(days: number): Promise<TSoftSalesData[]> {
