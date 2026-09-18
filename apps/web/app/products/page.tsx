@@ -110,7 +110,16 @@ export default function ProductsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-[34px] leading-[1.08]">Ürün Seçim Paneli</h1>
           <div className="flex items-center gap-[17px]">
-            <span className="text-[14px] text-[var(--color-bark)]">{selection.selectedIds.size} ürün seçildi</span>
+            <span
+              className="text-[14px] px-[11px] py-[3px]"
+              style={
+                selection.selectedIds.size > 0
+                  ? { backgroundColor: 'var(--color-neon-yellow)', color: 'var(--color-ink-black)' }
+                  : { color: 'var(--color-bark)' }
+              }
+            >
+              {selection.selectedIds.size} ürün seçildi
+            </span>
             {selection.selectedIds.size > 0 && (
               <Link href="/catalogs/new" className="btn-ghost">
                 → Katalog Oluştur
@@ -167,7 +176,12 @@ export default function ProductsPage() {
                 type="button"
                 onClick={() => setSort(opt)}
                 className="underline-offset-4"
-                style={{ textDecoration: sort === opt ? 'underline' : 'none', fontWeight: sort === opt ? 500 : 400 }}
+                style={{
+                  textDecoration: sort === opt ? 'underline' : 'none',
+                  textDecorationColor: sort === opt ? 'var(--color-neon-yellow)' : undefined,
+                  textDecorationThickness: sort === opt ? '3px' : undefined,
+                  fontWeight: sort === opt ? 500 : 400,
+                }}
               >
                 {opt === 'newest' ? 'En Yeni' : opt === 'performance' ? 'Performans' : 'Manuel'}
               </button>
@@ -187,6 +201,12 @@ export default function ProductsPage() {
           <p className="text-[14px] text-[var(--color-bark)]">Sırayı değiştirmek için ürün kartlarını sürükleyip bırakın.</p>
         )}
 
+        {sort === 'performance' && hasFilter && (
+          <p className="text-[14px] text-[var(--color-bark)]">
+            Satış performansı tsoft'tan anlık hesaplanıyor (son 30 gün) — en çok satandan en aza sıralı.
+          </p>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-[25px]">
           {displayedProducts.map((p) => (
             <div
@@ -198,7 +218,7 @@ export default function ProductsPage() {
               onDragEnd={() => setDragId(null)}
               style={{ opacity: dragId === p.id ? 0.4 : 1, cursor: sort === 'manual' ? 'grab' : undefined }}
             >
-              <ProductCard product={p} discountPct={discountPct} />
+              <ProductCard product={p} discountPct={discountPct} showPerformance={sort === 'performance'} />
             </div>
           ))}
         </div>

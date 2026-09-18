@@ -1,17 +1,29 @@
 @import 'tailwindcss';
 
 /*
- * Tasarım token'ları — docs/SISTEM-TASARIMI.md §0'da netleşen karara göre
- * DESIGN (3).md (Spécialiste Belge/Misuko referansı) hex değerleri BİREBİR kullanılıyor.
+ * Tasarım token'ları — admin panel teması "neon sarı / beyaz / antrasit gri" ana paletine
+ * geçirildi (bkz. konuşma). Eski DESIGN (3).md krem/bej paleti (bone-white/linen/pebble/bark/
+ * ink-black) BURADA terk edildi; PDF katalog şablonu (apps/web/app/catalog-print) BİLİNÇLİ
+ * OLARAK dokunulmadan bırakıldı — docs/SISTEM-TASARIMI.md §0 katalog çıktısının görsellerdeki
+ * HE-QA marka paletini birebir koruması gerektiğini netleştirmişti, admin arayüzü ile PDF
+ * çıktısı kasıtlı olarak farklı iki katman. Değişken adları (bone-white, ink-black vb.)
+ * tarihsel nedenlerle korundu — 170+ yerde kullanılıyorlar, sadece hex değerleri değişti:
+ *  - bone-white  → saf beyaz (ana zemin)
+ *  - linen       → çok açık nötr gri (ikincil yüzey/hover — "kart" hissi verir)
+ *  - pebble      → açık gri (hairline border)
+ *  - bark        → orta antrasit gri (ikincil/soluk metin)
+ *  - ink-black   → koyu antrasit (birincil metin/kenarlık — artık saf siyah değil)
+ *  - neon-yellow → YENİ vurgu rengi (CTA, seçili durum, odak halkası, aktif sekme)
  * beausite lisanslı bir font olduğundan yerel bir kopyası yoksa aşağıdaki sistem
  * fontu substitüsyonu (Söhne/Inter benzeri metrikler) devrededir.
  */
 @theme {
-  --color-bone-white: #fcf9ee;
-  --color-linen: #f2efe3;
-  --color-pebble: #bcbab2;
-  --color-bark: #6a6965;
-  --color-ink-black: #000000;
+  --color-bone-white: #ffffff;
+  --color-linen: #f2f2f4;
+  --color-pebble: #d6d6da;
+  --color-bark: #6e7078;
+  --color-ink-black: #1b1c20;
+  --color-neon-yellow: #e8ff3d;
 
   --font-beausite: 'beausite', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
@@ -51,7 +63,7 @@ body {
   line-height: 1.36;
 }
 
-/* Ghost outline buton — DESIGN.md "Ghost Outline Button" bileşeni */
+/* Ghost outline buton — hover'da neon sarı dolgu ana vurgu rengini taşır */
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -64,8 +76,25 @@ body {
   font-weight: 400;
   color: var(--color-ink-black);
   border-radius: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
 }
 
-.btn-ghost:hover {
-  background: var(--color-linen);
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-neon-yellow);
+  border-color: var(--color-neon-yellow);
+}
+
+.btn-ghost:disabled {
+  opacity: 0.5;
+}
+
+/* Odak halkası ve native form kontrolleri de vurgu rengini kullanır — tema tutarlılığı */
+:focus-visible {
+  outline: 2px solid var(--color-neon-yellow);
+  outline-offset: 2px;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--color-neon-yellow);
 }
