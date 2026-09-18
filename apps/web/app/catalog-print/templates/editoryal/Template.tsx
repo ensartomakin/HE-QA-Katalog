@@ -205,6 +205,23 @@ const CATEGORY_COVER_IMAGE: Record<string, string> = Object.fromEntries(
   )
 );
 
+// T-Soft'ta ürünün kendi kategorisi (Product.categoryId) yanlış/eksik atanmış olabiliyor —
+// ör. "Spor Kesim Deri Ceket" T-Soft'ta "Trençkot" kategorisine de ekli ama ana kategorisi
+// aslında "Ceket" (bkz. kullanıcı geri bildirimi). Kaynak veriyi düzeltmek yerine (T-Soft
+// tarafı, buradan değiştirilemiyor) burada ürün koduna göre bölüm kapağını override ediyoruz.
+const PRODUCT_CATEGORY_KEY_OVERRIDE: Record<string, string> = {
+  T6721: 'ceket', // Spor Kesim Deri Ceket Bordo
+  T6722: 'ceket', // Spor Kesim Deri Ceket Yosun
+  T6723: 'ceket', // Spor Kesim Deri Ceket Camel
+  T6724: 'ceket', // Spor Kesim Deri Ceket Kemik
+  T6725: 'ceket', // Spor Kesim Deri Ceket Siyah
+  T6726: 'ceket', // Spor Kesim Deri Ceket Kahve
+};
+
+function resolveCategoryKey(item: CatalogItem): string {
+  return PRODUCT_CATEGORY_KEY_OVERRIDE[item.product.code] ?? normalizeCategoryKey(item.product.category.name);
+}
+
 function focalPointStyle(item: CatalogItem, imageUrl: string): { objectPosition: string } {
   const focal = item.imageFocalPoints?.[imageUrl] ?? DEFAULT_FOCAL_POINT;
   return { objectPosition: `${focal.x * 100}% ${focal.y * 100}%` };
@@ -693,7 +710,7 @@ function buildPages(items: CatalogItem[]): EditoryalPage[] {
   let lastCategoryKey: string | null = null;
 
   for (const item of items) {
-    const categoryKey = normalizeCategoryKey(item.product.category.name);
+    const categoryKey = resolveCategoryKey(item);
     if (categoryKey !== lastCategoryKey) {
       const dividerImageUrl = CATEGORY_COVER_IMAGE[categoryKey];
       if (dividerImageUrl) {
