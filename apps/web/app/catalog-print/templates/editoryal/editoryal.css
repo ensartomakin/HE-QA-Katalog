@@ -312,9 +312,13 @@
 }
 
 .ed-info-right {
-  /* Başlangıç noktası referans (24.3%) noktasından 5mm sola kaydırılmış olacak
-     şekilde genişletildi (satır genişliği 269mm üzerinden hesaplandı). */
-  flex: 0 0 26.16%;
+  /* Başlangıç noktası referans (24.3%) noktasından toplam 10mm sola kaydırılmış olacak
+     şekilde genişletildi (satır genişliği 269mm üzerinden hesaplandı) — İngilizce/Arapça
+     etiketler ("Wholesale Price:", "سعر الجملة:") Türkçe'den ("Toptan Fiyat:") daha uzun
+     olduğu için fiyat satırının tek satıra sığması adına ilk 5mm'lik kaydırmaya (26.16%)
+     ek bir 5mm daha eklendi (bkz. konuşma — fiyat küsuratları da ayrıca kaldırıldı, bkz.
+     Template.tsx formatPrice). */
+  flex: 0 0 28.02%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -421,13 +425,12 @@
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  /* İngilizce/Arapça etiketler ("Wholesale Price:", "سعر الجملة:") Türkçe'den ("Toptan
-     Fiyat:") daha uzun olduğu için sabit genişlikli sağ sütunda (bkz. .ed-info-right)
-     tek satıra sığmayıp taşabiliyordu (bkz. konuşma). white-space: nowrap her span'ın
-     kendi metnini (miras yoluyla) tek parça tutmaya devam ediyor — yalnızca sığmadığında
-     bütün olarak bir alt satıra geçiyor, kelimenin ortasından kırılmıyor. Türkçe zaten
-     tek satıra sığdığı için bu satırın görünümü değişmiyor. */
-  flex-wrap: wrap;
+  /* Alt satıra kaymaması kullanıcı tarafından kesin olarak istendi — İngilizce/Arapça
+     etiketlerin ("Wholesale Price:", "سعر الجملة:") Türkçe'den ("Toptan Fiyat:") daha uzun
+     olması yüzünden yaşanan taşma, bunun yerine sağ sütunun genişletilmesiyle (bkz.
+     .ed-info-right) ve fiyatlardaki kuruş/cent basamağının kaldırılmasıyla (bkz.
+     Template.tsx formatPrice) çözüldü. */
+  flex-wrap: nowrap;
   white-space: nowrap;
   gap: 2mm;
 }
