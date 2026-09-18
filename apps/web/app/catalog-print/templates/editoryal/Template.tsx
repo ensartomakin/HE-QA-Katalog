@@ -268,17 +268,28 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   EUR: '€',
 };
 
-// Kumaş bilgisi bazen T-Soft/çeviri kaynağına göre küçük harfle ("80% polyamide...") bazen
-// büyük harfle ("Parachute Fabric") başlayabiliyor — tutarlılık için ilk harf her zaman
-// büyütülüyor (bkz. konuşma). Metin çoğunlukla "80% ..." gibi bir yüzde/sayıyla başladığından
-// (index 0'daki rakamda büyük/küçük harf ayrımı yok) ilk harf karakteri, string'in en
-// başındaki rakam/sembolleri atlayarak aranıyor. toLocaleUpperCase kullanılıyor ki
+// Kumaş bilgisi genelde "80% polyamide and 20% elastane" / "%80 poliamid ve %20 elastan"
+// gibi birden fazla malzeme adı içeriyor — kaynağa (T-Soft/Gemini çevirisi) göre bu adlardan
+// her biri ayrı ayrı küçük veya büyük harfle gelebiliyor (bkz. konuşma: yalnızca ilk kelimeyi
+// büyütmek yetmedi, "elastane" hâlâ küçüktü). Bu yüzden ilk kelime değil, boşlukla ayrılan
+// HER kelimenin ilk harfi büyütülüyor — "ve"/"and" gibi bağlaçlar hariç (bunlar İngilizce/
+// Türkçe cümle içi bağlaç olarak küçük kalmalı). Yüzde işareti/rakam içeren kelimelerde
+// ("80%", "%80") harf aranmadığı için değişmeden kalıyor. toLocaleUpperCase kullanılıyor ki
 // Türkçe'de "i" doğru şekilde "İ" olsun (düz .toUpperCase() bunu "I" yapardı).
-function capitalizeFirst(text: string, locale: string): string {
-  const match = text.match(/\p{L}/u);
-  if (!match || match.index === undefined) return text;
-  const idx = match.index;
-  return text.slice(0, idx) + text.charAt(idx).toLocaleUpperCase(locale) + text.slice(idx + 1);
+const FABRIC_TEXT_CONJUNCTIONS = new Set(['and', 've']);
+
+function capitalizeFabricWords(text: string, locale: string): string {
+  return text
+    .split(' ')
+    .map((word) => {
+      const bare = word.replace(/[.,;:]+$/, '').toLocaleLowerCase(locale);
+      if (FABRIC_TEXT_CONJUNCTIONS.has(bare)) return word;
+      const match = word.match(/\p{L}/u);
+      if (!match || match.index === undefined) return word;
+      const idx = match.index;
+      return word.slice(0, idx) + word.charAt(idx).toLocaleUpperCase(locale) + word.slice(idx + 1);
+    })
+    .join(' ');
 }
 
 // Kuruş/cent basılmıyor — küsuratlı fiyat hem sağ sütunun dar genişliğinde taşmaya yol
@@ -663,7 +674,7 @@ function EdProductPage({
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} strings={strings} />
                 {fabricComposition && (
                   <div className="ed-fabric-line">
-                    <strong>{strings.fabric}</strong> {capitalizeFirst(fabricComposition, strings.locale)}
+                    <strong>{strings.fabric}</strong> {capitalizeFabricWords(fabricComposition, strings.locale)}
                   </div>
                 )}
                 <div className="ed-price-block">
