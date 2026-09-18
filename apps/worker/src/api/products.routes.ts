@@ -70,6 +70,11 @@ productsRouter.get(
 
     const where = {
       archivedAt: null,
+      // Ürün Seçim Paneli'nde (kategori/arama ile gezinirken) T-Soft'ta pasif olan ürünler
+      // gösterilmesin (kullanıcı kararı) — ama `ids` ile doğrudan istenen ürünler (Katalog
+      // Oluşturucu'nun zaten seçilmiş ürünleri tek seferde çekmesi) bu filtreden muaf: bir
+      // katalog eklendikten sonra pasife düşse bile o katalogdaki ürün listesinden düşmemeli.
+      ...(ids ? {} : { isActive: true }),
       ...(ids ? { id: { in: ids.split(',') } } : {}),
       ...(categoryIds ? { categoryId: { in: categoryIds.split(',') } } : {}),
       ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
