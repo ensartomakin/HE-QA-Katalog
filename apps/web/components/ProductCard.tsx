@@ -12,7 +12,15 @@ const STOCK_LABEL: Record<Product['stockStatus'], string> = {
   UNKNOWN: 'Bilinmiyor',
 };
 
-export function ProductCard({ product, discountPct }: { product: Product; discountPct: number }) {
+export function ProductCard({
+  product,
+  discountPct,
+  showPerformance,
+}: {
+  product: Product;
+  discountPct: number;
+  showPerformance?: boolean;
+}) {
   const { isSelected, toggle } = useCatalogSelection();
   const selected = isSelected(product.id);
   const primaryImage = product.images.find((i) => i.isPrimary) ?? product.images[0];
@@ -37,7 +45,9 @@ export function ProductCard({ product, discountPct }: { product: Product; discou
           <div className="w-full h-full flex items-center justify-center text-[var(--color-bark)] text-[14px]">Görsel yok</div>
         )}
         <span
-          className="absolute top-[9px] right-[9px] w-[20px] h-[20px] border border-[var(--color-ink-black)] flex items-center justify-center bg-[var(--color-bone-white)]"
+          className={`absolute top-[9px] right-[9px] w-[20px] h-[20px] border border-[var(--color-ink-black)] flex items-center justify-center ${
+            selected ? 'bg-[var(--color-neon-yellow)]' : 'bg-[var(--color-bone-white)]'
+          }`}
           aria-hidden
         >
           {selected ? '✓' : ''}
@@ -45,6 +55,9 @@ export function ProductCard({ product, discountPct }: { product: Product; discou
       </button>
 
       <div className="text-[14px] text-[var(--color-bark)]">{STOCK_LABEL[product.stockStatus]}</div>
+      {showPerformance && (
+        <div className="text-[14px]">Son 30 günde {Math.round(Number(product.salesScore ?? 0))} adet satıldı</div>
+      )}
       <div className="text-[21px] leading-[1.2]">{product.name}</div>
       <div className="flex items-center justify-between text-[14px] text-[var(--color-bark)]">
         <span>{product.code}</span>

@@ -3,7 +3,10 @@ import { z } from 'zod';
 import { prisma } from '../db/prisma';
 import { asyncHandler } from '../utils/async-handler';
 import { translateMissingProductsBatch } from '../services/catalog.service';
+import { getTsoftClient } from '../services/tsoft-client';
 import { logger } from '../utils/logger';
+
+const PERFORMANCE_WINDOW_DAYS = 30;
 
 export const productsRouter = Router();
 
@@ -72,12 +75,38 @@ productsRouter.get(
       ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
     };
 
-    const orderBy =
-      sort === 'performance'
-        ? [{ salesScore: 'desc' as const }]
-        : sort === 'manual'
-          ? [{ manualSortWeight: 'asc' as const }]
-          : [{ createdAt: 'desc' as const }];
+    // "Performans" sıralaması artık Ayarlar/Senkronizasyon'daki manuel "Satış Performansını
+    // Güncelle" butonuna (DB'deki salesScore alanına) bağlı değil — kategori seçilir seçilmez
+    // tsoft'un order/get verisinden anlık hesaplanır ve çok satandan aza sıralanır (bkz.
+    // konuşma: "ayarlardan manuel senkron ile değil, anlık bul"). tsoft-client.ts'deki kısa
+    // TTL'li önbellek sayesinde art arda kategori değişimlerinde her seferinde tüm sipariş
+    // geçmişi yeniden taranmaz.
+    if (sort === 'performance') {
+      const products = await prisma.product.findMany({
+        where,
+        include: { images: true, colors: true, sizes: true, category: true },
+      });
+
+      let salesByCode = new Map<string, number>();
+      try {
+        const client = await getTsoftClient();
+        const sales = await client.getSalesReport([], PERFORMANCE_WINDOW_DAYS);
+        salesByCode = new Map(sales.map((s) => [s.productCode, s.soldQuantity14Days]));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.warn(`[products] anlık satış performansı alınamadı, son bilinen değere düşülüyor: ${message}`);
+      }
+
+      const scoreOf = (p: { code: string; salesScore: unknown }) => salesByCode.get(p.code) ?? Number(p.salesScore ?? 0);
+      const sorted = products
+        .map((p) => (salesByCode.has(p.code) ? { ...p, salesScore: String(salesByCode.get(p.code)) } : p))
+        .sort((a, b) => scoreOf(b) - scoreOf(a));
+
+      res.json({ products: sorted });
+      return;
+    }
+
+    const orderBy = sort === 'manual' ? [{ manualSortWeight: 'asc' as const }] : [{ createdAt: 'desc' as const }];
 
     const products = await prisma.product.findMany({
       where,
