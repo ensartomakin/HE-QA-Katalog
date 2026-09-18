@@ -268,8 +268,11 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   EUR: '€',
 };
 
+// Kuruş/cent basılmıyor — küsuratlı fiyat hem sağ sütunun dar genişliğinde taşmaya yol
+// açıyordu hem de kullanıcı tercihiyle en yakın tam sayıya yuvarlanıyor (0.5 ve üzeri
+// yukarı, altı aşağı — Math.round zaten bu kuralı uyguluyor).
 function formatPrice(value: number, currency: CatalogDetail['currency'], locale: string): string {
-  return `${value.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${CURRENCY_SYMBOL[currency]}`;
+  return `${Math.round(value).toLocaleString(locale)} ${CURRENCY_SYMBOL[currency]}`;
 }
 
 // hexPreview boş bırakılan renk varyantları için son çare — rengin adı gerçek bir
