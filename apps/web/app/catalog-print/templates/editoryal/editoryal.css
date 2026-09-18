@@ -421,7 +421,13 @@
   flex-shrink: 0;
   display: flex;
   align-items: baseline;
-  flex-wrap: nowrap;
+  /* İngilizce/Arapça etiketler ("Wholesale Price:", "سعر الجملة:") Türkçe'den ("Toptan
+     Fiyat:") daha uzun olduğu için sabit genişlikli sağ sütunda (bkz. .ed-info-right)
+     tek satıra sığmayıp taşabiliyordu (bkz. konuşma). white-space: nowrap her span'ın
+     kendi metnini (miras yoluyla) tek parça tutmaya devam ediyor — yalnızca sığmadığında
+     bütün olarak bir alt satıra geçiyor, kelimenin ortasından kırılmıyor. Türkçe zaten
+     tek satıra sığdığı için bu satırın görünümü değişmiyor. */
+  flex-wrap: wrap;
   white-space: nowrap;
   gap: 2mm;
 }
