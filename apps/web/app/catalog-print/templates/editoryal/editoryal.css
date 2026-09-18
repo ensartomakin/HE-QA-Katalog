@@ -312,13 +312,13 @@
 }
 
 .ed-info-right {
-  /* Başlangıç noktası referans (24.3%) noktasından toplam 10mm sola kaydırılmış olacak
-     şekilde genişletildi (satır genişliği 269mm üzerinden hesaplandı) — İngilizce/Arapça
-     etiketler ("Wholesale Price:", "سعر الجملة:") Türkçe'den ("Toptan Fiyat:") daha uzun
-     olduğu için fiyat satırının tek satıra sığması adına ilk 5mm'lik kaydırmaya (26.16%)
-     ek bir 5mm daha eklendi (bkz. konuşma — fiyat küsuratları da ayrıca kaldırıldı, bkz.
-     Template.tsx formatPrice). */
-  flex: 0 0 28.02%;
+  /* Başlangıç noktası referans (24.3%) noktasından 5mm sola kaydırılmış olacak
+     şekilde genişletildi (satır genişliği 269mm üzerinden hesaplandı) — bu sınır
+     görsellerin/sayfa numarasının hizasıyla eşleşecek şekilde ayarlandı, daha fazla
+     genişletilmemeli (bkz. konuşma). Uzun dil etiketlerindeki ("Wholesale Price:",
+     "سعر الجملة:") taşma sorunu bu genişlik yerine fiyatlardaki kuruş/cent basamağının
+     kaldırılmasıyla çözüldü (bkz. Template.tsx formatPrice). */
+  flex: 0 0 26.16%;
   min-width: 0;
   display: flex;
   flex-direction: column;
