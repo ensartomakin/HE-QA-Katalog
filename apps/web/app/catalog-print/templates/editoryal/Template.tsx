@@ -268,6 +268,19 @@ const CURRENCY_SYMBOL: Record<CatalogDetail['currency'], string> = {
   EUR: '€',
 };
 
+// Kumaş bilgisi bazen T-Soft/çeviri kaynağına göre küçük harfle ("80% polyamide...") bazen
+// büyük harfle ("Parachute Fabric") başlayabiliyor — tutarlılık için ilk harf her zaman
+// büyütülüyor (bkz. konuşma). Metin çoğunlukla "80% ..." gibi bir yüzde/sayıyla başladığından
+// (index 0'daki rakamda büyük/küçük harf ayrımı yok) ilk harf karakteri, string'in en
+// başındaki rakam/sembolleri atlayarak aranıyor. toLocaleUpperCase kullanılıyor ki
+// Türkçe'de "i" doğru şekilde "İ" olsun (düz .toUpperCase() bunu "I" yapardı).
+function capitalizeFirst(text: string, locale: string): string {
+  const match = text.match(/\p{L}/u);
+  if (!match || match.index === undefined) return text;
+  const idx = match.index;
+  return text.slice(0, idx) + text.charAt(idx).toLocaleUpperCase(locale) + text.slice(idx + 1);
+}
+
 // Kuruş/cent basılmıyor — küsuratlı fiyat hem sağ sütunun dar genişliğinde taşmaya yol
 // açıyordu hem de kullanıcı tercihiyle en yakın tam sayıya yuvarlanıyor (0.5 ve üzeri
 // yukarı, altı aşağı — Math.round zaten bu kuralı uyguluyor).
@@ -650,7 +663,7 @@ function EdProductPage({
                 <EdSizeLine sizes={sizeLabels} lengthLabelText={item.product.lengthLabel} strings={strings} />
                 {fabricComposition && (
                   <div className="ed-fabric-line">
-                    <strong>{strings.fabric}</strong> {fabricComposition}
+                    <strong>{strings.fabric}</strong> {capitalizeFirst(fabricComposition, strings.locale)}
                   </div>
                 )}
                 <div className="ed-price-block">
