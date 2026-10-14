@@ -53,7 +53,8 @@ function usernameForUrl(apiUser: string): string {
   return apiUser.includes('@') ? apiUser.split('@')[0] : apiUser;
 }
 
-// REST1 token — query params ile
+// REST1 token — kimlik bilgileri form gövdesinde. T-Soft 2026-10'da şifrenin query string'de
+// gönderilmesini yasakladı (AUI040: "Şifre adres satırında gönderilemez, POST gövdesinde gönderin!").
 async function fetchToken(http: AxiosInstance, creds: TsoftCredentials): Promise<string> {
   const username = usernameForUrl(creds.apiUser);
   const endpoint = `/rest1/auth/login/${encodeURIComponent(username)}`;
@@ -61,8 +62,8 @@ async function fetchToken(http: AxiosInstance, creds: TsoftCredentials): Promise
 
   let res: import('axios').AxiosResponse;
   try {
-    res = await http.post(endpoint, null, {
-      params: { user: username, pass: creds.apiPass },
+    res = await http.post(endpoint, new URLSearchParams({ user: username, pass: creds.apiPass }), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     });
   } catch (err) {
     const e = err as AxiosError;
