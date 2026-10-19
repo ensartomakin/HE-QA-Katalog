@@ -233,7 +233,10 @@ const CATEGORY_COVER_EN_FILES = new Set([
   'tunikgomlek.jpg',
 ]);
 
+// Arapça kataloglarda bölüm kapağı hiç gösterilmez — kapak tasarımlarının metni (dikey
+// kategori adı + açıklama) Türkçe/İngilizce ve Arapça versiyonu yok.
 function resolveCategoryCoverImageUrl(categoryKey: string, language: CatalogLanguage): string | null {
+  if (language === 'AR') return null;
   const file = CATEGORY_COVER_IMAGE_FILE[categoryKey];
   if (!file) return null;
   const dir = language === 'EN' && CATEGORY_COVER_EN_FILES.has(file) ? 'category-covers-en' : 'category-covers';
@@ -297,6 +300,15 @@ function capitalizeFabricWords(text: string, locale: string): string {
 // yukarı, altı aşağı — Math.round zaten bu kuralı uyguluyor).
 function formatPrice(value: number, currency: CatalogDetail['currency'], locale: string): string {
   return `${Math.round(value).toLocaleString(locale)} ${CURRENCY_SYMBOL[currency]}`;
+}
+
+// Fiyatların aksine (bkz. catalog-i18n `-u-nu-latn`) sayfa numaraları Arapça kataloglarda
+// Arapça-Hint rakamlarıyla (٠١٢…) basılır.
+const ARABIC_INDIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+
+function formatPageNumber(pageNumber: number, strings: CatalogStrings): string {
+  const padded = String(pageNumber).padStart(2, '0');
+  return strings.htmlLang === 'ar' ? padded.replace(/\d/g, (d) => ARABIC_INDIC_DIGITS[Number(d)]) : padded;
 }
 
 // hexPreview boş bırakılan renk varyantları için son çare — rengin adı gerçek bir
@@ -692,7 +704,7 @@ function EdProductPage({
           <div className="ed-footer-brand">
             <EdBrandMark brandLogoUrl={brandLogoUrl} variant="footer" />
           </div>
-          <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+          <div className="ed-page-number">{formatPageNumber(pageNumber, strings)}</div>
         </div>
       </div>
     </div>
@@ -752,7 +764,7 @@ function EdAboutPage({
           <div className="ed-footer-brand">
             <EdBrandMark brandLogoUrl={brandLogoUrl} variant="footer" />
           </div>
-          <div className="ed-page-number">{String(pageNumber).padStart(2, '0')}</div>
+          <div className="ed-page-number">{formatPageNumber(pageNumber, strings)}</div>
         </div>
       </div>
     </div>
