@@ -21,10 +21,12 @@ function ProductCardPrint({
   item,
   currency,
   discountPct,
+  showPrices,
 }: {
   item: CatalogItem;
   currency: CatalogDetail['currency'];
   discountPct: number;
+  showPrices: boolean;
 }) {
   const primaryImage = item.product.images.find((i) => i.isPrimary) ?? item.product.images[0];
   const symbol = CURRENCY_SYMBOL[currency];
@@ -51,15 +53,19 @@ function ProductCardPrint({
 
       {item.product.fabricInfo && <div className="product-fabric">{item.product.fabricInfo}</div>}
 
-      <div className="product-price-original">
-        {item.originalPriceDisplay.toFixed(2)} {symbol}
-      </div>
-      <div className="product-price-row">
-        <span className="product-price">
-          {item.priceDisplay.toFixed(2)} {symbol}
-        </span>
-        <span className="product-price-badge">%{Math.round(discountPct)}</span>
-      </div>
+      {showPrices && (
+        <>
+          <div className="product-price-original">
+            {item.originalPriceDisplay.toFixed(2)} {symbol}
+          </div>
+          <div className="product-price-row">
+            <span className="product-price">
+              {item.priceDisplay.toFixed(2)} {symbol}
+            </span>
+            <span className="product-price-badge">%{Math.round(discountPct)}</span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -89,13 +95,17 @@ export default function PlaceholderKlasikTemplate({ catalog, settings }: Catalog
           {catalog.coverSubtitle && <div className="cover-subtitle">{catalog.coverSubtitle}</div>}
 
           <div className="trust-band">
-            <div className="trust-item">
-              <strong>%{Math.round(catalog.discountPct)} Toptan İndirim</strong>
-              Tüm ürünlerde geçerli sabit toptan indirim oranı.
-            </div>
+            {catalog.showPrices && (
+              <div className="trust-item">
+                <strong>%{Math.round(catalog.discountPct)} Toptan İndirim</strong>
+                Tüm ürünlerde geçerli sabit toptan indirim oranı.
+              </div>
+            )}
             <div className="trust-item">
               <strong>Güncel Ürünler</strong>
-              Fiyat ve stok bilgileri kataloğun üretildiği tarih itibarıyla günceldir.
+              {catalog.showPrices
+                ? 'Fiyat ve stok bilgileri kataloğun üretildiği tarih itibarıyla günceldir.'
+                : 'Stok bilgileri kataloğun üretildiği tarih itibarıyla günceldir.'}
             </div>
             <div className="trust-item">
               <strong>{catalog.items.length} Ürün</strong>
@@ -119,7 +129,7 @@ export default function PlaceholderKlasikTemplate({ catalog, settings }: Catalog
           </div>
           <div className="product-grid">
             {pageItems.map((item) => (
-              <ProductCardPrint key={item.id} item={item} currency={catalog.currency} discountPct={catalog.discountPct} />
+              <ProductCardPrint key={item.id} item={item} currency={catalog.currency} discountPct={catalog.discountPct} showPrices={catalog.showPrices} />
             ))}
           </div>
         </div>
