@@ -126,6 +126,8 @@ model Catalog {
   coverImageUrl String?
   templateId    String        @default("placeholder-klasik")
   language      Language      @default(TR)
+  // false: katalog fiyatsız basılır (tüm dillerde fiyat bloğu ve indirim oranı gizlenir).
+  showPrices    Boolean       @default(true)
   status        CatalogStatus @default(DRAFT)
   pdfUrl        String?
   generatedAt   DateTime?

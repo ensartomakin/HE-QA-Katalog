@@ -198,7 +198,7 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
             <div>
               <h1 className="text-[34px] leading-[1.08]">{catalog.name}</h1>
               <p className="text-[14px] text-[var(--color-bark)]">
-                {catalog.items.length} ürün · {catalog.currency} · {STATUS_LABEL[catalog.status]}
+                {catalog.items.length} ürün · {catalog.showPrices ? catalog.currency : 'Fiyatsız'} · {STATUS_LABEL[catalog.status]}
               </p>
             </div>
 
@@ -274,7 +274,7 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
                   <span>
                     {i + 1}. {item.product.name} — {item.product.code}
                   </span>
-                  <span>{item.priceDisplay.toFixed(2)} {catalog.currency}</span>
+                  {catalog.showPrices && <span>{item.priceDisplay.toFixed(2)} {catalog.currency}</span>}
                 </div>
               ))}
             </div>

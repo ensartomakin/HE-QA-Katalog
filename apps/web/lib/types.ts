@@ -91,6 +91,7 @@ export interface CatalogDetail {
   coverImageUrl: string | null;
   templateId: string;
   language: CatalogLanguage;
+  showPrices: boolean;
   status: CatalogStatus;
   pdfUrl: string | null;
   generatedAt: string | null;

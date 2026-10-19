@@ -592,6 +592,7 @@ function EdProductPage({
   mediaChunk,
   currency,
   discountPct,
+  showPrices,
   brandLogoUrl,
   defaultHeaderTitle,
   pageNumber,
@@ -602,6 +603,7 @@ function EdProductPage({
   mediaChunk: MediaItem[];
   currency: CatalogDetail['currency'];
   discountPct: number;
+  showPrices: boolean;
   brandLogoUrl: string | null;
   defaultHeaderTitle: string;
   pageNumber: number;
@@ -689,12 +691,14 @@ function EdProductPage({
                     <strong>{strings.fabric}</strong> {capitalizeFabricWords(fabricComposition, strings.locale)}
                   </div>
                 )}
-                <div className="ed-price-block">
-                  <span className="ed-price-label">{strings.wholesalePrice}</span>
-                  <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency, strings.locale)}</span>
-                  <span className="ed-price-value">{formatPrice(item.priceDisplay, currency, strings.locale)}</span>
-                  <span className="ed-price-discount">%{Math.round(discountPct)}</span>
-                </div>
+                {showPrices && (
+                  <div className="ed-price-block">
+                    <span className="ed-price-label">{strings.wholesalePrice}</span>
+                    <span className="ed-price-original">{formatPrice(item.originalPriceDisplay, currency, strings.locale)}</span>
+                    <span className="ed-price-value">{formatPrice(item.priceDisplay, currency, strings.locale)}</span>
+                    <span className="ed-price-discount">%{Math.round(discountPct)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -837,6 +841,7 @@ export default function EditoryalTemplate({ catalog, settings }: CatalogPrintTem
             mediaChunk={page.chunk}
             currency={catalog.currency}
             discountPct={catalog.discountPct}
+            showPrices={catalog.showPrices}
             brandLogoUrl={settings.brandLogoUrl}
             defaultHeaderTitle={defaultHeaderTitle}
             pageNumber={pageCursor}

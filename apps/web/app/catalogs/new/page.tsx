@@ -29,6 +29,7 @@ export default function NewCatalogPage() {
   const [currency, setCurrency] = useState<CatalogCurrency>('TRY');
   const [templateId, setTemplateId] = useState<string>(DEFAULT_CATALOG_TEMPLATE_ID);
   const [language, setLanguage] = useState<CatalogLanguage>('TR');
+  const [showPrices, setShowPrices] = useState(true);
   // Katalog Adı dışında, sayfa bazlı gösterilebilecek ek başlıklar (bkz. "artırılabilir
   // katalog adı" özelliği) — her ürün, Seçili Ürünler listesindeki açılır menüden bu
   // başlıklardan birine (ya da varsayılan olarak Katalog Adı'na) atanabilir.
@@ -46,6 +47,7 @@ export default function NewCatalogPage() {
     queryFn: () => fetchJson<{ rates: { currency: 'USD' | 'EUR'; ratePerTry: string }[] }>('/api/settings/exchange-rates'),
   });
   const missingRate =
+    showPrices &&
     (currency === 'USD' || currency === 'EUR') && !ratesData?.rates.some((r) => r.currency === currency);
 
   const productById = new Map((data?.products ?? []).map((p) => [p.id, p]));
@@ -113,6 +115,7 @@ export default function NewCatalogPage() {
           currency: String(form.get('currency') ?? 'TRY') as CatalogCurrency,
           templateId,
           language,
+          showPrices,
           productIds: orderedIds,
           createdBy: meData?.user.email ?? 'bilinmiyor',
           ...(Object.keys(titleOverrides).length > 0 ? { titleOverrides } : {}),
@@ -175,12 +178,28 @@ export default function NewCatalogPage() {
                 name="currency"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as CatalogCurrency)}
+                disabled={!showPrices}
                 className="border-b border-[var(--color-pebble)] bg-transparent py-[9px] outline-none"
               >
                 <option value="TRY">TRY</option>
                 <option value="USD">USD (Ayarlar'da kur girilmiş olmalı)</option>
                 <option value="EUR">EUR (Ayarlar'da kur girilmiş olmalı)</option>
               </select>
+            </label>
+
+            <label className="flex items-start gap-[9px] text-[14px] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showPrices}
+                onChange={(e) => setShowPrices(e.target.checked)}
+                className="mt-[3px]"
+              />
+              <span className="flex flex-col gap-[2px]">
+                Fiyatları göster
+                <span className="text-[12px] text-[var(--color-bark)]">
+                  Kapalıyken katalogda (tüm dillerde) fiyat ve indirim oranı basılmaz.
+                </span>
+              </span>
             </label>
 
             {missingRate && (

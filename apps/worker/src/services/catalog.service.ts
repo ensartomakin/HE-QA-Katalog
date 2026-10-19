@@ -29,6 +29,7 @@ export interface CreateCatalogInput {
   currency: 'TRY' | 'USD' | 'EUR';
   templateId: string;
   language: 'TR' | 'AR' | 'EN';
+  showPrices: boolean;
   productIds: string[];
   createdBy: string;
   // Katalog Oluşturucu'daki "artırılabilir" sayfa başlıkları — productId -> bu üründe
@@ -41,7 +42,8 @@ export async function createCatalog(input: CreateCatalogInput) {
   // Kur eksikse katalog oluşturma anında engelle — önceden bu kontrol yalnızca önizleme/PDF
   // üretiminde (getCatalogDetail) yapılıyordu, kullanıcı katalog kaydedildikten SONRA
   // opak bir hatayla karşılaşıyordu.
-  await getExchangeRate(input.currency);
+  // Fiyatsız katalogda para birimi kullanılmadığından kur kontrolü atlanır.
+  if (input.showPrices) await getExchangeRate(input.currency);
 
   const catalog = await prisma.catalog.create({
     data: {
@@ -51,6 +53,7 @@ export async function createCatalog(input: CreateCatalogInput) {
       coverSubtitle: input.coverSubtitle,
       templateId: input.templateId,
       language: input.language,
+      showPrices: input.showPrices,
       createdBy: input.createdBy,
       status: 'DRAFT',
       items: {
@@ -353,7 +356,8 @@ export async function getCatalogDetail(id: string) {
 
   const settings = await prisma.settings.findUnique({ where: { id: 'singleton' } });
   const discountPct = settings ? Number(settings.wholesaleDiscountPct) : 40;
-  const ratePerTry = await getExchangeRate(catalog.currency);
+  // Fiyatsız katalogda fiyatlar şablonda basılmadığından kur eksikliği önizlemeyi/PDF'i engellemesin.
+  const ratePerTry = catalog.showPrices ? await getExchangeRate(catalog.currency) : 1;
 
   // Renk varyantı fotoğrafları: tsoft'ta her renk ayrı bir üründür, birbirine tsoftRelatedIds
   // ile bağlıdır (bkz. sync.service.ts syncColorSwatches). Kardeş ürünlerin birincil
