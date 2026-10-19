@@ -6,6 +6,10 @@ const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
 // PDF binary'sini worker'dan alıp tarayıcıya aktarır — worker'ın hiçbir zaman doğrudan
 // tarayıcıdan erişilebilir olmaması gerektiği için (bkz. docs/SISTEM-TASARIMI.md §6),
 // dosya indirmesi de bu proxy üzerinden geçer.
+// Worker diskinde dosya yoksa (deploy sonrası) PDF indirme sırasında yeniden üretiliyor —
+// bu Vercel'in varsayılan fonksiyon süresinden uzun sürebilir.
+export const maxDuration = 60;
+
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   if (!INTERNAL_API_KEY) {
     return NextResponse.json({ error: 'INTERNAL_API_KEY tanımlı değil.' }, { status: 500 });
@@ -17,7 +21,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   });
 
   if (!res.ok) {
-    return NextResponse.json({ error: 'PDF bulunamadı' }, { status: res.status });
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    return NextResponse.json({ error: body?.error ?? 'PDF bulunamadı' }, { status: res.status });
   }
 
   const buffer = await res.arrayBuffer();

@@ -177,9 +177,17 @@ catalogsRouter.get(
   '/:id/pdf',
   asyncHandler(async (req: Request, res: Response) => {
     const filePath = getCatalogPdfPath(req.params.id);
+    // Railway konteyner diski kalıcı değil — her deploy'da generated-pdfs/ siliniyor, ama
+    // katalog DB'de READY kalıyor. Dosya yoksa indirme isteğinde PDF yeniden üretilir.
     if (!fs.existsSync(filePath)) {
-      res.status(404).json({ error: 'PDF henüz üretilmedi' });
-      return;
+      try {
+        await generateCatalogPdf(req.params.id);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error(`[catalogs/pdf] yeniden üretim başarısız: ${message}`);
+        res.status(502).json({ error: message });
+        return;
+      }
     }
     res.setHeader('Content-Type', 'application/pdf');
     fs.createReadStream(filePath).pipe(res);
