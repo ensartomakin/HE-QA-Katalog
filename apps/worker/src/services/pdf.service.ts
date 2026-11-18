@@ -1,8 +1,10 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
-import { chromium } from 'playwright';
+import { prisma } from '../db/prisma';
 import { logger } from '../utils/logger';
 import { getCatalogOrientation, markCatalogFailed, markCatalogGenerating, markCatalogReady } from './catalog.service';
+import { renderPrintPageToPdf } from './pdf-renderer';
 
 const OUTPUT_DIR = path.join(__dirname, '..', '..', 'generated-pdfs');
 
@@ -12,58 +14,98 @@ function webUrl(): string {
   return url;
 }
 
-/**
- * Katalog PDF'ini üretir. `/catalog-print/:id` sayfası (apps/web) hem canlı önizleme
- * hem burada Playwright'ın ekran görüntüsünü aldığı PDF kaynağı olarak kullanılır —
- * "önizlediğin çıktıdır" garantisi böyle sağlanır (bkz. docs/SISTEM-TASARIMI.md §4).
- * MVP'de tek worker + senkron üretim yeterli (öngörülen hacim ~25 katalog/ay, bkz. §5);
- * BullMQ kuyruğu Faz 4'te 100+ ürünlük kataloglar için eklenecek.
- */
-export async function generateCatalogPdf(catalogId: string): Promise<string> {
-  await markCatalogGenerating(catalogId);
+interface PdfJob {
+  running: boolean;
+  donePages: number;
+  totalPages: number;
+  error: string | null;
+}
 
+// Tek worker varsayımı (bkz. docs/SISTEM-TASARIMI.md §5): iş durumu bellekte tutuluyor ve
+// büyük kataloglar belleği paylaşmasın diye işler sırayla çalışıyor.
+const jobs = new Map<string, PdfJob>();
+let queue: Promise<void> = Promise.resolve();
+
+/**
+ * Katalog PDF'ini üretir. `/catalog-print/:id` sayfası (apps/web) hem canlı önizleme hem
+ * PDF kaynağı olarak kullanılır — "önizlediğin çıktıdır" garantisi böyle sağlanır
+ * (bkz. docs/SISTEM-TASARIMI.md §4).
+ */
+async function generateCatalogPdf(catalogId: string, job: PdfJob): Promise<void> {
+  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), `he-qa-pdf-${catalogId}-`));
   try {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    const filePath = path.join(OUTPUT_DIR, `${catalogId}.pdf`);
+    const filePath = getCatalogPdfPath(catalogId);
+    const tempPath = path.join(workDir, 'catalog.pdf');
+    const orientation = await getCatalogOrientation(catalogId);
+    const url = `${webUrl()}/catalog-print/${catalogId}`;
 
-    const browser = await chromium.launch();
-    try {
-      const orientation = await getCatalogOrientation(catalogId);
-      const landscape = orientation === 'landscape';
+    logger.info(`[pdf] render başlıyor: ${url}`);
+    const { pageCount, failedImages } = await renderPrintPageToPdf({
+      url,
+      landscape: orientation === 'landscape',
+      outputPath: tempPath,
+      workDir,
+      onProgress: (donePages, totalPages) => {
+        job.donePages = donePages;
+        job.totalPages = totalPages;
+      },
+    });
 
-      const page = await browser.newPage();
-      const url = `${webUrl()}/catalog-print/${catalogId}`;
-      logger.info(`[pdf] render başlıyor: ${url}`);
-      await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
-      // networkidle, font dosyalarının indirildiğini garanti eder ama şekillendirilip
-      // layout'a uygulandığını değil — bu olmadan PDF, hâlâ fallback fontla ölçülmüş
-      // (dolayısıyla farklı satır sayısına sahip) bir sayfayı yakalayabilir, bu da
-      // sayfa sonundaki içeriğin (örn. alt bilgi satırı) kırpılmasına yol açar.
-      await page.evaluate(() => document.fonts.ready);
-      await page.pdf({
-        path: filePath,
-        // format:'A4' yerine açık width/height — .pdf-page'in şablona göre 210x297mm
-        // (dikey) veya 297x210mm (yatay, bkz. print-base.css --page-width/--page-height)
-        // render ettiği boyutla birebir eşleşmesi gerekiyor.
-        width: landscape ? '297mm' : '210mm',
-        height: landscape ? '210mm' : '297mm',
-        preferCSSPageSize: false,
-        printBackground: true,
-        margin: { top: '0', bottom: '0', left: '0', right: '0' },
-      });
-    } finally {
-      await browser.close();
-    }
+    // Üretim yarıda kalırsa önceki PDF bozulmasın diye dosya yalnızca tamamlanınca değiştiriliyor.
+    fs.copyFileSync(tempPath, filePath);
+    await markCatalogReady(catalogId, `/pdfs/${catalogId}.pdf`);
+    logger.info(`[pdf] tamamlandı: ${filePath} (${pageCount} sayfa, ${failedImages} görsel alınamadı)`);
+  } finally {
+    fs.rmSync(workDir, { recursive: true, force: true });
+  }
+}
 
-    const pdfUrl = `/pdfs/${catalogId}.pdf`;
-    await markCatalogReady(catalogId, pdfUrl);
-    logger.info(`[pdf] tamamlandı: ${filePath}`);
-    return pdfUrl;
+/** PDF üretimini arka planda başlatır ve hemen döner — büyük kataloglar dakikalar sürdüğü
+ *  için HTTP isteği üretimin bitmesini beklemez; ilerleme getCatalogPdfStatus ile izlenir. */
+export async function startCatalogPdfJob(catalogId: string): Promise<void> {
+  if (jobs.get(catalogId)?.running) return;
+
+  const job: PdfJob = { running: true, donePages: 0, totalPages: 0, error: null };
+  jobs.set(catalogId, job);
+  try {
+    await markCatalogGenerating(catalogId);
   } catch (err) {
-    await markCatalogFailed(catalogId);
-    logger.error(`[pdf] hata: ${err instanceof Error ? err.message : String(err)}`);
+    jobs.delete(catalogId);
     throw err;
   }
+
+  queue = queue.then(async () => {
+    try {
+      await generateCatalogPdf(catalogId, job);
+    } catch (err) {
+      job.error = err instanceof Error ? err.message : String(err);
+      logger.error(`[pdf] hata: ${job.error}`);
+      await markCatalogFailed(catalogId).catch((markErr) => logger.error(`[pdf] durum yazılamadı: ${String(markErr)}`));
+    } finally {
+      job.running = false;
+    }
+  });
+}
+
+export async function getCatalogPdfStatus(catalogId: string) {
+  const catalog = await prisma.catalog.findUnique({ where: { id: catalogId }, select: { status: true } });
+  if (!catalog) return null;
+
+  const job = jobs.get(catalogId);
+  // Worker üretim sırasında yeniden başladıysa iş bellekten silinmiştir; katalog sonsuza
+  // kadar "üretiliyor" durumunda kalmasın.
+  if (catalog.status === 'GENERATING' && !job?.running) {
+    await markCatalogFailed(catalogId);
+    return { status: 'FAILED' as const, donePages: 0, totalPages: 0, error: 'Sunucu üretim sırasında yeniden başladı. Lütfen tekrar deneyin.' };
+  }
+
+  return {
+    status: catalog.status,
+    donePages: job?.donePages ?? 0,
+    totalPages: job?.totalPages ?? 0,
+    error: job?.error ?? null,
+  };
 }
 
 export function getCatalogPdfPath(catalogId: string): string {

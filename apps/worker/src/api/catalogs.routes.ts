@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import fs from 'fs';
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
@@ -11,11 +12,19 @@ import {
   updateCatalogItemVariantOrder,
   updateCatalogItemFocalPoint,
 } from '../services/catalog.service';
-import { generateCatalogPdf, getCatalogPdfPath } from '../services/pdf.service';
+import { getCatalogPdfPath, getCatalogPdfStatus, startCatalogPdfJob } from '../services/pdf.service';
 import { logger } from '../utils/logger';
 import { asyncHandler } from '../utils/async-handler';
 
 export const catalogsRouter = Router();
+
+function verifyPdfDownloadSignature(catalogId: string, exp: string, sig: string): boolean {
+  const key = process.env.INTERNAL_API_KEY;
+  if (!key || !/^\d+$/.test(exp) || Number(exp) < Date.now()) return false;
+  const expected = crypto.createHmac('sha256', key).update(`pdf-download:${catalogId}:${exp}`).digest();
+  const actual = Buffer.from(sig, 'hex');
+  return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
+}
 
 const createSchema = z.object({
   name: z.string().min(1),
@@ -164,8 +173,8 @@ catalogsRouter.post(
   '/:id/generate',
   asyncHandler(async (req: Request, res: Response) => {
     try {
-      const pdfUrl = await generateCatalogPdf(req.params.id);
-      res.json({ ok: true, pdfUrl });
+      await startCatalogPdfJob(req.params.id);
+      res.status(202).json({ ok: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error(`[catalogs/generate] ${message}`);
@@ -175,22 +184,40 @@ catalogsRouter.post(
 );
 
 catalogsRouter.get(
+  '/:id/pdf-status',
+  asyncHandler(async (req: Request, res: Response) => {
+    const status = await getCatalogPdfStatus(req.params.id);
+    if (!status) {
+      res.status(404).json({ error: 'Katalog bulunamadı' });
+      return;
+    }
+    res.json(status);
+  })
+);
+
+// Vercel fonksiyonları büyük yanıtları taşıyamadığı için PDF tarayıcıya doğrudan worker'dan
+// iner. Bu uç nokta internal key istemez; apps/web'in oturum kontrolünden sonra ürettiği
+// kısa ömürlü imzayla korunur (bkz. apps/web/app/api/catalogs/[id]/pdf/route.ts).
+export const publicCatalogsRouter = Router();
+
+publicCatalogsRouter.get(
   '/:id/pdf',
   asyncHandler(async (req: Request, res: Response) => {
-    const filePath = getCatalogPdfPath(req.params.id);
-    // Railway konteyner diski kalıcı değil — her deploy'da generated-pdfs/ siliniyor, ama
-    // katalog DB'de READY kalıyor. Dosya yoksa indirme isteğinde PDF yeniden üretilir.
-    if (!fs.existsSync(filePath)) {
-      try {
-        await generateCatalogPdf(req.params.id);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        logger.error(`[catalogs/pdf] yeniden üretim başarısız: ${message}`);
-        res.status(502).json({ error: message });
-        return;
-      }
+    const { id } = req.params;
+    if (!verifyPdfDownloadSignature(id, String(req.query.exp ?? ''), String(req.query.sig ?? ''))) {
+      res.status(403).type('text/plain; charset=utf-8').send('İndirme bağlantısının süresi dolmuş. Katalog sayfasından tekrar indirin.');
+      return;
     }
-    res.setHeader('Content-Type', 'application/pdf');
-    fs.createReadStream(filePath).pipe(res);
+
+    const filePath = getCatalogPdfPath(id);
+    // Railway konteyner diski kalıcı değil — her deploy'da generated-pdfs/ siliniyor, ama
+    // katalog DB'de READY kalıyor. Dosya yoksa PDF arka planda yeniden üretilir.
+    if (!fs.existsSync(filePath)) {
+      await startCatalogPdfJob(id);
+      res.status(202).type('text/plain; charset=utf-8').send('PDF yeniden hazırlanıyor. Birkaç dakika sonra katalog sayfasından tekrar indirin.');
+      return;
+    }
+    res.setHeader('Content-Disposition', `inline; filename="katalog-${id}.pdf"`);
+    res.sendFile(filePath);
   })
 );
