@@ -11,6 +11,7 @@ import { upsizeTsoftImageUrl } from '@/lib/tsoft-image';
 const DEFAULT_FOCAL_POINT = { x: 0.5, y: 0.15 };
 
 type FocalEditorTarget = { itemId: string; imageUrl: string; label: string };
+type PdfStatus = { status: CatalogDetail['status']; donePages: number; totalPages: number; error: string | null };
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
@@ -76,8 +77,23 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
   const { data, isLoading } = useQuery({
     queryKey: ['catalog', params.id],
     queryFn: () => fetchJson<{ catalog: CatalogDetail }>(`/api/catalogs/${params.id}`),
-    refetchInterval: (q) => (q.state.data?.catalog.status === 'GENERATING' ? 2000 : false),
   });
+
+  const catalogStatus = data?.catalog.status;
+
+  // Üretim arka planda sürüyor; ağır katalog detayı yerine yalnızca hafif durum bilgisi izleniyor.
+  const { data: pdfStatus } = useQuery({
+    queryKey: ['catalog-pdf-status', params.id],
+    queryFn: () => fetchJson<PdfStatus>(`/api/catalogs/${params.id}/pdf-status`),
+    enabled: catalogStatus === 'GENERATING' || catalogStatus === 'FAILED',
+    refetchInterval: catalogStatus === 'GENERATING' ? 3000 : false,
+  });
+
+  useEffect(() => {
+    if (catalogStatus === 'GENERATING' && pdfStatus && pdfStatus.status !== 'GENERATING') {
+      queryClient.invalidateQueries({ queryKey: ['catalog', params.id] });
+    }
+  }, [catalogStatus, pdfStatus, params.id, queryClient]);
 
   const generate = useMutation({
     mutationFn: () => fetchJson(`/api/catalogs/${params.id}/generate`, { method: 'POST' }),
@@ -255,7 +271,16 @@ export default function CatalogDetailPage({ params }: { params: { id: string } }
             {generate.isError && (
               <p className="text-[14px] text-red-700">{generate.error instanceof Error ? generate.error.message : 'PDF üretilemedi'}</p>
             )}
-            {catalog.status === 'FAILED' && <p className="text-[14px] text-red-700">PDF üretimi başarısız oldu. Tekrar deneyin.</p>}
+            {catalog.status === 'GENERATING' && (
+              <p className="text-[14px] text-[var(--color-bark)]">
+                {pdfStatus?.totalPages
+                  ? `${pdfStatus.donePages} / ${pdfStatus.totalPages} sayfa hazırlandı. Bu sayfadan ayrılabilirsiniz, üretim arka planda devam eder.`
+                  : 'PDF hazırlanıyor. Bu sayfadan ayrılabilirsiniz, üretim arka planda devam eder.'}
+              </p>
+            )}
+            {catalog.status === 'FAILED' && (
+              <p className="text-[14px] text-red-700">PDF üretimi başarısız oldu{pdfStatus?.error ? `: ${pdfStatus.error}` : '. Tekrar deneyin.'}</p>
+            )}
 
             <div className="flex flex-col gap-[9px]">
               <h2 className="text-[21px]">Ürünler</h2>

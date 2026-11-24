@@ -7,7 +7,7 @@ import { settingsRouter } from './api/settings.routes';
 import { syncRouter } from './api/sync.routes';
 import { productsRouter } from './api/products.routes';
 import { authRouter } from './api/auth.routes';
-import { catalogsRouter } from './api/catalogs.routes';
+import { catalogsRouter, publicCatalogsRouter } from './api/catalogs.routes';
 
 // Son çare güvenlik ağı: asyncHandler tüm route'ları kapsıyor olsa da, route dışı
 // (örn. arka plan işleri, kütüphane içi) bir promise reddi kaçarsa Node 20'nin
@@ -43,6 +43,7 @@ app.use('/api/settings', requireInternalAuth, settingsRouter);
 app.use('/api/sync', requireInternalAuth, syncRouter);
 app.use('/api/products', requireInternalAuth, productsRouter);
 app.use('/api/catalogs', requireInternalAuth, catalogsRouter);
+app.use('/public/catalogs', publicCatalogsRouter);
 
 // Global hata middleware'i — asyncHandler ile yakalanıp next(err) ile buraya iletilen her
 // route hatası burada sonlanır; process asla bir HTTP isteği yüzünden çökmez.
